@@ -13,6 +13,7 @@ if (!SEC_hasRights('migrator.admin')) {
 require_once $_CONF['path'] . 'plugins/migrator/classes/SqlDumpImporter.php';
 require_once $_CONF['path'] . 'plugins/migrator/classes/SourceDetector.php';
 require_once $_CONF['path'] . 'plugins/migrator/classes/MigrationAnalyzer.php';
+require_once $_CONF['path'] . 'plugins/migrator/adapters/LegacyGeeklogAdapter.php';
 
 function MIGRATOR_adminMessage($text, $type = 'info')
 {
@@ -149,6 +150,164 @@ function MIGRATOR_renderLatestAnalysis()
     return $html;
 }
 
+
+
+function MIGRATOR_loadJob($jobId)
+{
+    global $_TABLES;
+
+    $jobId = (int) $jobId;
+    if ($jobId <= 0) {
+        return null;
+    }
+
+    $result = DB_query("SELECT * FROM {$_TABLES['migrator_jobs']} WHERE job_id = {$jobId} LIMIT 1");
+    if (DB_numRows($result) === 0) {
+        return null;
+    }
+
+    return DB_fetchArray($result);
+}
+
+function MIGRATOR_updateJobReport($jobId, array $report, $status)
+{
+    global $_TABLES;
+
+    $jobId = (int) $jobId;
+    $reportJson = DB_escapeString(json_encode($report));
+    $status = DB_escapeString($status);
+    $now = DB_escapeString(date('Y-m-d H:i:s'));
+
+    DB_query("UPDATE {$_TABLES['migrator_jobs']}
+        SET report = '{$reportJson}', status = '{$status}', modified = '{$now}'
+        WHERE job_id = {$jobId}");
+}
+
+function MIGRATOR_runLegacyJob($jobId, $dryRun)
+{
+    $job = MIGRATOR_loadJob($jobId);
+    if (!is_array($job)) {
+        throw new RuntimeException('Migration job not found.');
+    }
+
+    if ($job['source_cms'] !== 'legacy_geeklog') {
+        throw new RuntimeException('This migration adapter only supports legacy Geeklog jobs.');
+    }
+
+    $tableMap = json_decode($job['table_map'], true);
+    $report = json_decode($job['report'], true);
+
+    if (!is_array($tableMap)) {
+        throw new RuntimeException('The staged table map is invalid.');
+    }
+    if (!is_array($report)) {
+        $report = array();
+    }
+
+    $entities = array('users', 'topics', 'stories', 'comments', 'staticpages');
+    $adapter = new MigratorLegacyGeeklogAdapter((int) $jobId, $tableMap, $dryRun);
+    $migration = $adapter->run($entities);
+
+    if ($dryRun) {
+        $report['dry_run'] = $migration;
+        MIGRATOR_updateJobReport($jobId, $report, 'dry-run');
+    } else {
+        $report['migration'] = $migration;
+        MIGRATOR_updateJobReport($jobId, $report, 'migrated');
+    }
+
+    return $migration;
+}
+
+function MIGRATOR_renderMigrationResult(array $migration, $title)
+{
+    global $LANG_MIGRATOR;
+
+    $html = '<h3>' . MIGRATOR_escape($title) . '</h3>';
+
+    if (!empty($migration['warnings'])) {
+        $html .= '<ul>';
+        foreach ($migration['warnings'] as $warning) {
+            $html .= '<li>' . MIGRATOR_escape($warning) . '</li>';
+        }
+        $html .= '</ul>';
+    }
+
+    if (empty($migration['entities']) || !is_array($migration['entities'])) {
+        return $html . '<p>' . MIGRATOR_escape($LANG_MIGRATOR['no_migration_result']) . '</p>';
+    }
+
+    $html .= '<div class="migrator-table-wrap"><table class="admin-list"><thead><tr>';
+    $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['content_type']) . '</th>';
+    $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['would_import']) . '</th>';
+    $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['imported']) . '</th>';
+    $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['preserved']) . '</th>';
+    $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['conflicts']) . '</th>';
+    $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['skipped']) . '</th>';
+    $html .= '</tr></thead><tbody>';
+
+    foreach ($migration['entities'] as $entity => $stats) {
+        $html .= '<tr>';
+        $html .= '<td>' . MIGRATOR_escape($entity) . '</td>';
+        $html .= '<td>' . (int) (isset($stats['would_import']) ? $stats['would_import'] : 0) . '</td>';
+        $html .= '<td>' . (int) (isset($stats['imported']) ? $stats['imported'] : 0) . '</td>';
+        $html .= '<td>' . (int) (isset($stats['preserved']) ? $stats['preserved'] : 0) . '</td>';
+        $html .= '<td>' . (int) (isset($stats['conflicts']) ? $stats['conflicts'] : 0) . '</td>';
+        $html .= '<td>' . (int) (isset($stats['skipped']) ? $stats['skipped'] : 0) . '</td>';
+        $html .= '</tr>';
+    }
+
+    $html .= '</tbody></table></div>';
+
+    return $html;
+}
+
+function MIGRATOR_renderMigrationActions()
+{
+    global $_TABLES, $LANG_MIGRATOR;
+
+    $result = DB_query("SELECT * FROM {$_TABLES['migrator_jobs']} ORDER BY job_id DESC LIMIT 1");
+    if (DB_numRows($result) === 0) {
+        return '';
+    }
+
+    $job = DB_fetchArray($result);
+    if ($job['source_cms'] !== 'legacy_geeklog') {
+        return '<p>' . MIGRATOR_escape($LANG_MIGRATOR['adapter_not_ready']) . '</p>';
+    }
+
+    $jobId = (int) $job['job_id'];
+    $token1 = SEC_createToken();
+    $token2 = SEC_createToken();
+
+    $html = '<div class="migrator-actions">';
+    $html .= '<form method="post" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '">';
+    $html .= '<input type="hidden" name="mode" value="dryrun">';
+    $html .= '<input type="hidden" name="job_id" value="' . $jobId . '">';
+    $html .= '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . MIGRATOR_escape($token1) . '">';
+    $html .= '<button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['run_dry_run']) . '</button>';
+    $html .= '</form>';
+
+    $html .= '<form method="post" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '" onsubmit="return confirm('
+        . htmlspecialchars(json_encode($LANG_MIGRATOR['migrate_confirm']), ENT_QUOTES, 'UTF-8') . ');">';
+    $html .= '<input type="hidden" name="mode" value="migrate">';
+    $html .= '<input type="hidden" name="job_id" value="' . $jobId . '">';
+    $html .= '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . MIGRATOR_escape($token2) . '">';
+    $html .= '<button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['run_migration']) . '</button>';
+    $html .= '</form>';
+    $html .= '</div>';
+
+    $report = json_decode($job['report'], true);
+    if (is_array($report) && isset($report['dry_run']) && is_array($report['dry_run'])) {
+        $html .= MIGRATOR_renderMigrationResult($report['dry_run'], $LANG_MIGRATOR['dry_run_result']);
+    }
+    if (is_array($report) && isset($report['migration']) && is_array($report['migration'])) {
+        $html .= MIGRATOR_renderMigrationResult($report['migration'], $LANG_MIGRATOR['migration_result']);
+    }
+
+    return $html;
+}
+
 function MIGRATOR_purgeData()
 {
     global $_TABLES;
@@ -222,6 +381,30 @@ if ($requestMethod === 'POST') {
                 }
             }
         }
+    } elseif ($mode === 'dryrun') {
+        $jobId = isset($_POST['job_id']) ? (int) $_POST['job_id'] : 0;
+        try {
+            MIGRATOR_runLegacyJob($jobId, true);
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['dry_run_complete']);
+        } catch (Exception $e) {
+            COM_errorLog('Migrator dry run failed: ' . $e->getMessage());
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['dry_run_failed'] . ' ' . $e->getMessage(), 'error');
+        }
+    } elseif ($mode === 'migrate') {
+        $destination = MIGRATOR_destinationStatus();
+        $jobId = isset($_POST['job_id']) ? (int) $_POST['job_id'] : 0;
+
+        if (!$destination['fresh']) {
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['destination_not_fresh'], 'error');
+        } else {
+            try {
+                MIGRATOR_runLegacyJob($jobId, false);
+                $message = MIGRATOR_adminMessage($LANG_MIGRATOR['migration_complete']);
+            } catch (Exception $e) {
+                COM_errorLog('Migrator migration failed: ' . $e->getMessage());
+                $message = MIGRATOR_adminMessage($LANG_MIGRATOR['migration_failed'] . ' ' . $e->getMessage(), 'error');
+            }
+        }
     } elseif ($mode === 'purge') {
         MIGRATOR_purgeData();
         $message = MIGRATOR_adminMessage($LANG_MIGRATOR['purged']);
@@ -281,6 +464,7 @@ $template->set_var(array(
     'jobs_table' => MIGRATOR_renderJobs(),
     'analysis_title' => MIGRATOR_escape($LANG_MIGRATOR['analysis']),
     'analysis' => MIGRATOR_renderLatestAnalysis(),
+    'migration_actions' => MIGRATOR_renderMigrationActions(),
     'purge_form' => $purgeForm
 ));
 
