@@ -169,7 +169,7 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             $targetColumns = $this->columns($_TABLES['mg_albums']);
 
             if (isset($sourceColumns['opacity']) && isset($targetColumns['wm_opacity'])) {
-                $report['warnings'][] = 'MediaGallery album field opacity was renamed to wm_opacity; values are not automatically remapped yet.';
+                $report['warnings'][] = 'MediaGallery album field opacity is mapped to wm_opacity during migration.';
             }
         }
 
@@ -187,6 +187,13 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
         $stats = $this->stats();
 
         foreach ($rows as $row) {
+            if ($sourceSuffix === 'mg_albums'
+                && isset($row['opacity'])
+                && !isset($row['wm_opacity'])
+            ) {
+                $row['wm_opacity'] = $row['opacity'];
+            }
+
             $sourceId = '';
             if ($idField !== '' && isset($row[$idField])) {
                 $sourceId = (string) $row[$idField];
