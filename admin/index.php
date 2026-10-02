@@ -14,6 +14,7 @@ require_once $_CONF['path'] . 'plugins/migrator/classes/SqlDumpImporter.php';
 require_once $_CONF['path'] . 'plugins/migrator/classes/SourceDetector.php';
 require_once $_CONF['path'] . 'plugins/migrator/classes/MigrationAnalyzer.php';
 require_once $_CONF['path'] . 'plugins/migrator/adapters/LegacyGeeklogAdapter.php';
+require_once $_CONF['path'] . 'plugins/migrator/adapters/GlfusionAdapter.php';
 
 function MIGRATOR_adminMessage($text, $type = 'info')
 {
@@ -183,15 +184,15 @@ function MIGRATOR_updateJobReport($jobId, array $report, $status)
         WHERE job_id = {$jobId}");
 }
 
-function MIGRATOR_runLegacyJob($jobId, $dryRun)
+function MIGRATOR_runCoreJob($jobId, $dryRun)
 {
     $job = MIGRATOR_loadJob($jobId);
     if (!is_array($job)) {
         throw new RuntimeException('Migration job not found.');
     }
 
-    if ($job['source_cms'] !== 'legacy_geeklog') {
-        throw new RuntimeException('This migration adapter only supports legacy Geeklog jobs.');
+    if (!in_array($job['source_cms'], array('legacy_geeklog', 'glfusion'), true)) {
+        throw new RuntimeException('No core-content migration adapter is available for this source.');
     }
 
     $tableMap = json_decode($job['table_map'], true);
@@ -205,7 +206,12 @@ function MIGRATOR_runLegacyJob($jobId, $dryRun)
     }
 
     $entities = array('users', 'topics', 'stories', 'comments', 'staticpages');
-    $adapter = new MigratorLegacyGeeklogAdapter((int) $jobId, $tableMap, $dryRun);
+
+    if ($job['source_cms'] === 'glfusion') {
+        $adapter = new MigratorGlfusionAdapter((int) $jobId, $tableMap, $dryRun);
+    } else {
+        $adapter = new MigratorLegacyGeeklogAdapter((int) $jobId, $tableMap, $dryRun);
+    }
     $migration = $adapter->run($entities);
 
     if ($dryRun) {
@@ -272,7 +278,7 @@ function MIGRATOR_renderMigrationActions()
     }
 
     $job = DB_fetchArray($result);
-    if ($job['source_cms'] !== 'legacy_geeklog') {
+    if (!in_array($job['source_cms'], array('legacy_geeklog', 'glfusion'), true)) {
         return '<p>' . MIGRATOR_escape($LANG_MIGRATOR['adapter_not_ready']) . '</p>';
     }
 
@@ -384,7 +390,7 @@ if ($requestMethod === 'POST') {
     } elseif ($mode === 'dryrun') {
         $jobId = isset($_POST['job_id']) ? (int) $_POST['job_id'] : 0;
         try {
-            MIGRATOR_runLegacyJob($jobId, true);
+            MIGRATOR_runCoreJob($jobId, true);
             $message = MIGRATOR_adminMessage($LANG_MIGRATOR['dry_run_complete']);
         } catch (Exception $e) {
             COM_errorLog('Migrator dry run failed: ' . $e->getMessage());
@@ -398,7 +404,7 @@ if ($requestMethod === 'POST') {
             $message = MIGRATOR_adminMessage($LANG_MIGRATOR['destination_not_fresh'], 'error');
         } else {
             try {
-                MIGRATOR_runLegacyJob($jobId, false);
+                MIGRATOR_runCoreJob($jobId, false);
                 $message = MIGRATOR_adminMessage($LANG_MIGRATOR['migration_complete']);
             } catch (Exception $e) {
                 COM_errorLog('Migrator migration failed: ' . $e->getMessage());
