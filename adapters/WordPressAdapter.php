@@ -447,7 +447,14 @@ class MigratorWordPressAdapter extends MigratorLegacyGeeklogAdapter
 
         $stats = $this->stats();
         $parentMap = array();
+        $approvedIds = array();
         $itemsToRebuild = array();
+
+        foreach ($rows as $row) {
+            $commentId = (int) $row['comment_ID'];
+            $parentMap[$commentId] = isset($row['comment_parent']) ? (int) $row['comment_parent'] : 0;
+            $approvedIds[$commentId] = true;
+        }
 
         foreach ($rows as $row) {
             $sourceId = (int) $row['comment_ID'];
@@ -459,7 +466,6 @@ class MigratorWordPressAdapter extends MigratorLegacyGeeklogAdapter
             }
 
             $targetItem = $this->postMap[$postId];
-            $parentMap[$sourceId] = isset($row['comment_parent']) ? (int) $row['comment_parent'] : 0;
 
             if ($this->dryRun) {
                 ++$stats['would_import'];
@@ -478,6 +484,12 @@ class MigratorWordPressAdapter extends MigratorLegacyGeeklogAdapter
                 : null;
             $type = $targetItem['type'];
             $sid = $targetItem['id'];
+            $parentId = isset($row['comment_parent']) ? (int) $row['comment_parent'] : 0;
+            if ($parentId > 0 && !isset($approvedIds[$parentId])) {
+                $parentId = 0;
+            }
+
+            $parentMap[$sourceId] = $parentId;
             $depth = $this->commentDepth($sourceId, $parentMap);
             $title = $targetItem['title'] !== '' ? $targetItem['title'] : 'Comment';
 
@@ -488,7 +500,7 @@ class MigratorWordPressAdapter extends MigratorLegacyGeeklogAdapter
                 'date' => $this->validDate($row['comment_date']),
                 'title' => substr($title, 0, 128),
                 'comment' => (string) $row['comment_content'],
-                'pid' => isset($row['comment_parent']) ? (int) $row['comment_parent'] : 0,
+                'pid' => $parentId,
                 'lft' => 0,
                 'rht' => 0,
                 'indent' => $depth,
