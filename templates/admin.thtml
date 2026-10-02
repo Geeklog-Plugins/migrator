@@ -12,6 +12,7 @@
             <li>{step_3}</li>
         </ol>
         <p><strong>{fresh_warning}</strong></p>
+        {destination_status}
         <p>{safe_stage}</p>
     </section>
 
