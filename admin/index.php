@@ -15,6 +15,7 @@ require_once $_CONF['path'] . 'plugins/migrator/classes/SourceDetector.php';
 require_once $_CONF['path'] . 'plugins/migrator/classes/MigrationAnalyzer.php';
 require_once $_CONF['path'] . 'plugins/migrator/adapters/LegacyGeeklogAdapter.php';
 require_once $_CONF['path'] . 'plugins/migrator/adapters/GlfusionAdapter.php';
+require_once $_CONF['path'] . 'plugins/migrator/adapters/WordPressAdapter.php';
 
 function MIGRATOR_adminMessage($text, $type = 'info')
 {
@@ -191,8 +192,8 @@ function MIGRATOR_runCoreJob($jobId, $dryRun)
         throw new RuntimeException('Migration job not found.');
     }
 
-    if (!in_array($job['source_cms'], array('legacy_geeklog', 'glfusion'), true)) {
-        throw new RuntimeException('No core-content migration adapter is available for this source.');
+    if (!in_array($job['source_cms'], array('legacy_geeklog', 'glfusion', 'wordpress'), true)) {
+        throw new RuntimeException('No migration adapter is available for this source.');
     }
 
     $tableMap = json_decode($job['table_map'], true);
@@ -209,10 +210,14 @@ function MIGRATOR_runCoreJob($jobId, $dryRun)
 
     if ($job['source_cms'] === 'glfusion') {
         $adapter = new MigratorGlfusionAdapter((int) $jobId, $tableMap, $dryRun);
+        $migration = $adapter->run($entities);
+    } elseif ($job['source_cms'] === 'wordpress') {
+        $adapter = new MigratorWordPressAdapter((int) $jobId, $tableMap, $dryRun);
+        $migration = $adapter->run();
     } else {
         $adapter = new MigratorLegacyGeeklogAdapter((int) $jobId, $tableMap, $dryRun);
+        $migration = $adapter->run($entities);
     }
-    $migration = $adapter->run($entities);
 
     if ($dryRun) {
         $report['dry_run'] = $migration;
@@ -342,7 +347,7 @@ function MIGRATOR_renderMigrationActions()
     }
 
     $job = DB_fetchArray($result);
-    if (!in_array($job['source_cms'], array('legacy_geeklog', 'glfusion'), true)) {
+    if (!in_array($job['source_cms'], array('legacy_geeklog', 'glfusion', 'wordpress'), true)) {
         return '<p>' . MIGRATOR_escape($LANG_MIGRATOR['adapter_not_ready']) . '</p>';
     }
 
