@@ -1,13 +1,13 @@
 # Migrator Roadmap
 
-Migrator is a Geeklog plugin designed to import recoverable content from legacy CMS databases into a **fresh Geeklog installation**.
+Migrator is a Geeklog plugin designed to import recoverable content from legacy CMS databases into a **fresh Geeklog 2.2.2 installation**.
 
 The project deliberately favors **simple, reliable data recovery** over perfect reproduction of the source CMS.
 
 ## Project goals
 
 - Import data from a database copy rather than requiring access to the original CMS installation.
-- Target a fresh Geeklog installation to reduce conflicts and simplify ID preservation.
+- Target a fresh Geeklog 2.2.2 installation to reduce conflicts and simplify ID preservation. Compatibility with older Geeklog destination versions is intentionally out of scope.
 - Recover as much useful content as possible, even when some source features cannot be reproduced.
 - Keep migrations modular so one failing content type does not block the rest.
 - Clearly report what was imported, skipped, transformed, or still requires manual action.
@@ -18,7 +18,7 @@ The project deliberately favors **simple, reliable data recovery** over perfect 
 
 ### 1. Legacy Geeklog
 
-Support migration from older Geeklog installations to the current supported Geeklog release.
+Support migration from older Geeklog installations to Geeklog 2.2.2.
 
 Initial targets:
 
@@ -268,7 +268,7 @@ The migration engine should remain independent from source CMS details.
 
 # Data safety
 
-Migrator must be designed for a **fresh Geeklog installation**.
+Migrator must be designed for a **fresh Geeklog 2.2.2 installation**.
 
 Before migration it should verify that the destination does not already contain significant user or content data.
 
@@ -355,7 +355,7 @@ Migration should be resumable where practical.
 
 # Development milestones
 
-## 0.1.0 — Migration foundation
+## 0.1.0 — Migration foundation\n\nDestination compatibility: Geeklog 2.2.2 only.
 
 - Geeklog plugin skeleton
 - fresh-installation safety check
