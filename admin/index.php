@@ -228,6 +228,15 @@ if ($requestMethod === 'POST') {
     }
 }
 
+$destination = MIGRATOR_destinationStatus();
+$destinationMessage = $destination['fresh']
+    ? '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['destination_fresh']) . '</strong></p>'
+    : '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['destination_not_fresh']) . '</strong></p>';
+$destinationMessage .= '<p>' . MIGRATOR_escape($LANG_MIGRATOR['destination_counts']) . ': '
+    . 'users=' . (int) $destination['counts']['users'] . ', '
+    . 'stories=' . (int) $destination['counts']['stories'] . ', '
+    . 'topics=' . (int) $destination['counts']['topics'] . '</p>';
+
 $token = SEC_createToken();
 
 $uploadForm = '<form method="post" enctype="multipart/form-data" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '">';
@@ -265,6 +274,7 @@ $template->set_var(array(
     'step_3' => MIGRATOR_escape($LANG_MIGRATOR['step_3']),
     'fresh_warning' => MIGRATOR_escape($LANG_MIGRATOR['fresh_warning']),
     'safe_stage' => MIGRATOR_escape($LANG_MIGRATOR['safe_stage']),
+    'destination_status' => $destinationMessage,
     'upload_title' => MIGRATOR_escape($LANG_MIGRATOR['upload']),
     'upload_form' => $uploadForm,
     'jobs_title' => MIGRATOR_escape($LANG_MIGRATOR['jobs']),
