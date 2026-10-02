@@ -1,0 +1,36 @@
+<div class="migrator-admin">
+    <h1>{page_title}</h1>
+    <p>{intro}</p>
+
+    {message}
+
+    <section class="migrator-section">
+        <h2>{getting_started}</h2>
+        <ol>
+            <li>{step_1}</li>
+            <li>{step_2}</li>
+            <li>{step_3}</li>
+        </ol>
+        <p><strong>{fresh_warning}</strong></p>
+        <p>{safe_stage}</p>
+    </section>
+
+    <section class="migrator-section">
+        <h2>{upload_title}</h2>
+        {upload_form}
+    </section>
+
+    <section class="migrator-section">
+        <h2>{jobs_title}</h2>
+        {jobs_table}
+    </section>
+
+    <section class="migrator-section">
+        <h2>{analysis_title}</h2>
+        {analysis}
+    </section>
+
+    <section class="migrator-section migrator-danger">
+        {purge_form}
+    </section>
+</div>
