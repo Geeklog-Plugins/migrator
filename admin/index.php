@@ -265,6 +265,70 @@ function MIGRATOR_renderMigrationResult(array $migration, $title)
 
     $html .= '</tbody></table></div>';
 
+    if (!empty($migration['plugins']) && is_array($migration['plugins'])) {
+        $html .= '<h4>' . MIGRATOR_escape($LANG_MIGRATOR['plugin_content']) . '</h4>';
+
+        foreach ($migration['plugins'] as $plugin => $pluginReport) {
+            $html .= '<h5>' . MIGRATOR_escape(ucfirst($plugin)) . '</h5>';
+
+            if (empty($pluginReport['available'])) {
+                $html .= '<p>' . MIGRATOR_escape($LANG_MIGRATOR['source_not_detected']) . '</p>';
+                continue;
+            }
+
+            if (!empty($pluginReport['tables']) && is_array($pluginReport['tables'])) {
+                $html .= '<div class="migrator-table-wrap"><table class="admin-list"><thead><tr>';
+                $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['source_table']) . '</th>';
+                $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['would_import']) . '</th>';
+                $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['imported']) . '</th>';
+                $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['conflicts']) . '</th>';
+                $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['skipped']) . '</th>';
+                $html .= '</tr></thead><tbody>';
+
+                foreach ($pluginReport['tables'] as $table => $stats) {
+                    $html .= '<tr>';
+                    $html .= '<td>' . MIGRATOR_escape($table) . '</td>';
+                    $html .= '<td>' . (int) (isset($stats['would_import']) ? $stats['would_import'] : 0) . '</td>';
+                    $html .= '<td>' . (int) (isset($stats['imported']) ? $stats['imported'] : 0) . '</td>';
+                    $html .= '<td>' . (int) (isset($stats['conflicts']) ? $stats['conflicts'] : 0) . '</td>';
+                    $html .= '<td>' . (int) (isset($stats['skipped']) ? $stats['skipped'] : 0) . '</td>';
+                    $html .= '</tr>';
+                }
+
+                $html .= '</tbody></table></div>';
+            }
+
+            if (!empty($pluginReport['warnings'])) {
+                $html .= '<ul>';
+                foreach ($pluginReport['warnings'] as $warning) {
+                    $html .= '<li>' . MIGRATOR_escape($warning) . '</li>';
+                }
+                $html .= '</ul>';
+            }
+        }
+    }
+
+    if (!empty($migration['media_manifest']) && is_array($migration['media_manifest'])) {
+        $html .= '<h4>' . MIGRATOR_escape($LANG_MIGRATOR['files_to_copy']) . '</h4>';
+        $html .= '<div class="migrator-table-wrap"><table class="admin-list"><thead><tr>';
+        $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['content_type']) . '</th>';
+        $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['source_path']) . '</th>';
+        $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['target_path']) . '</th>';
+        $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['note']) . '</th>';
+        $html .= '</tr></thead><tbody>';
+
+        foreach ($migration['media_manifest'] as $item) {
+            $html .= '<tr>';
+            $html .= '<td>' . MIGRATOR_escape(isset($item['type']) ? $item['type'] : '') . '</td>';
+            $html .= '<td><code>' . MIGRATOR_escape(isset($item['source']) ? $item['source'] : '') . '</code></td>';
+            $html .= '<td><code>' . MIGRATOR_escape(isset($item['target']) ? $item['target'] : '') . '</code></td>';
+            $html .= '<td>' . MIGRATOR_escape(isset($item['note']) ? $item['note'] : '') . '</td>';
+            $html .= '</tr>';
+        }
+
+        $html .= '</tbody></table></div>';
+    }
+
     return $html;
 }
 
