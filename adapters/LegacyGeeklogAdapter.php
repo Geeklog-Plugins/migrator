@@ -37,6 +37,8 @@ class MigratorLegacyGeeklogAdapter
             $result['entities'][$entity] = $this->{$method}();
         }
 
+        $result['entities']['topic_assignments'] = $this->migrateTopicAssignments();
+
         return $result;
     }
 
@@ -314,6 +316,86 @@ class MigratorLegacyGeeklogAdapter
             } else {
                 ++$stats['skipped'];
             }
+        }
+
+        return $stats;
+    }
+
+
+    private function migrateTopicAssignments()
+    {
+        global $_TABLES;
+
+        if (!isset($_TABLES['topic_assignments'])) {
+            return $this->emptyResult('Destination topic assignments table not found.');
+        }
+
+        $source = $this->sourceTable('topic_assignments');
+        if ($source === '') {
+            return $this->emptyResult('No source topic assignments table; legacy story topic columns will be used when available.');
+        }
+
+        $rows = $this->fetchRows($source);
+        $stats = $this->stats();
+
+        foreach ($rows as $row) {
+            $tid = isset($row['tid']) ? (string) $row['tid'] : '';
+            $type = isset($row['type']) ? (string) $row['type'] : '';
+            $id = isset($row['id']) ? (string) $row['id'] : '';
+
+            if ($tid === '' || $type === '' || $id === '') {
+                ++$stats['skipped'];
+                continue;
+            }
+
+            if (!in_array($type, array('article', 'staticpages'), true)) {
+                ++$stats['skipped'];
+                continue;
+            }
+
+            if ($type === 'staticpages' && !isset($_TABLES['staticpage'])) {
+                ++$stats['skipped'];
+                continue;
+            }
+
+            $targetTable = $type === 'article' ? $_TABLES['stories'] : $_TABLES['staticpage'];
+            $targetField = $type === 'article' ? 'sid' : 'sp_id';
+
+            if (DB_count($_TABLES['topics'], 'tid', DB_escapeString($tid)) === 0
+                || DB_count($targetTable, $targetField, DB_escapeString($id)) === 0
+            ) {
+                ++$stats['skipped'];
+                continue;
+            }
+
+            $tidEsc = DB_escapeString($tid);
+            $typeEsc = DB_escapeString($type);
+            $idEsc = DB_escapeString($id);
+            $subtype = isset($row['subtype']) ? DB_escapeString((string) $row['subtype']) : '';
+            $inherit = isset($row['inherit']) ? (int) $row['inherit'] : 1;
+            $tdefault = isset($row['tdefault']) ? (int) $row['tdefault'] : 0;
+
+            $sql = "SELECT COUNT(*) AS total FROM {$_TABLES['topic_assignments']}
+                WHERE tid = '{$tidEsc}' AND type = '{$typeEsc}'
+                AND subtype = '{$subtype}' AND id = '{$idEsc}'";
+            $check = DB_query($sql);
+            $existing = DB_fetchArray($check);
+
+            if ((int) $existing['total'] > 0) {
+                ++$stats['preserved'];
+                continue;
+            }
+
+            if ($this->dryRun) {
+                ++$stats['would_import'];
+                continue;
+            }
+
+            DB_query("INSERT INTO {$_TABLES['topic_assignments']}
+                (tid, type, subtype, id, inherit, tdefault)
+                VALUES ('{$tidEsc}', '{$typeEsc}', '{$subtype}', '{$idEsc}', {$inherit}, {$tdefault})");
+
+            ++$stats['imported'];
         }
 
         return $stats;
