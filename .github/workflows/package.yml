@@ -1,0 +1,139 @@
+name: Build Migrator 1.0.0 installable archive
+
+on:
+  push:
+    branches:
+      - develop-0.1.0
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: migrator-1.0.0-package
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Migrator branch
+        uses: actions/checkout@v4
+        with:
+          ref: develop-0.1.0
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: Lint PHP files
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f \( -name '*.php' -o -name '*.inc' \) \
+            -not -path './build/*' \
+            -not -path './dist/*' \
+            -not -path './.git/*' \
+            -print0 | xargs -0 -n1 php -l
+
+      - name: Run Migrator smoke tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          php tests/smoke.php
+
+      - name: Verify release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "'pi_version' => '1.0.0'" autoinstall.php
+          grep -q "'pi_gl_version' => '2.2.2'" autoinstall.php
+          php -r '
+            $d = json_decode(file_get_contents("plugin.json"), true);
+            if (!is_array($d)) exit(1);
+            if (($d["id"] ?? "") !== "migrator") exit(1);
+            if (($d["version"] ?? "") !== "1.0.0") exit(1);
+            if (($d["requires"]["geeklog"] ?? "") !== "2.2.2") exit(1);
+          '
+
+      - name: Build installable archive
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf build
+          mkdir -p build/migrator
+
+          cp -a \
+            LICENSE \
+            README.md \
+            ROADMAP.md \
+            adapters \
+            admin \
+            autoinstall.php \
+            classes \
+            functions.inc \
+            language \
+            migrator.php \
+            plugin.json \
+            sql \
+            templates \
+            build/migrator/
+
+          cd build
+          zip -r migrator_1.0.0_2.1.1.zip migrator >/dev/null
+
+          unzip -t migrator_1.0.0_2.1.1.zip >/dev/null
+
+          test "$(zipinfo -1 migrator_1.0.0_2.1.1.zip | head -n 1)" = 'migrator/'
+          unzip -p migrator_1.0.0_2.1.1.zip migrator/autoinstall.php | grep -q "'pi_version' => '1.0.0'"
+          unzip -p migrator_1.0.0_2.1.1.zip migrator/autoinstall.php | grep -q "'pi_gl_version' => '2.2.2'"
+
+          if zipinfo -1 migrator_1.0.0_2.1.1.zip | awk -F/ '
+            {
+              for (i = 1; i <= NF; i++) {
+                if ($i ~ /^\./) {
+                  print "Forbidden dot-prefixed archive entry: " $0 > "/dev/stderr";
+                  bad = 1;
+                }
+              }
+            }
+            END { exit bad ? 1 : 0 }
+          '; then
+            echo "Archive contains no dot-prefixed files or directories."
+          else
+            exit 1
+          fi
+
+      - name: Publish installable archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: migrator-1.0.0-installable
+          path: build/migrator_1.0.0_2.1.1.zip
+          if-no-files-found: error
+
+      - name: Commit archive to dist
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+          find dist -maxdepth 1 -type f -name 'migrator_*.zip' ! -name 'migrator_1.0.0_2.1.1.zip' -delete
+          cp build/migrator_1.0.0_2.1.1.zip dist/migrator_1.0.0_2.1.1.zip
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git add -A dist
+
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+
+          git commit -m 'Build Migrator 1.0.0 release archive [skip ci]'
+          git fetch origin develop-0.1.0
+          git rebase origin/develop-0.1.0
+          git push origin HEAD:develop-0.1.0
