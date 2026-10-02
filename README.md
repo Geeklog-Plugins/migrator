@@ -94,3 +94,28 @@ The legacy glFusion tables `ff_attachments`, `ff_bookmarks` and `ff_rating_assoc
 The database schemas are highly compatible. Most MediaGallery tables migrate through their common columns while preserving IDs and relationships.
 
 Media files are intentionally **not copied by Migrator**. After database migration, the administrator is instructed to copy the complete source `public_html/mediagallery/mediaobjects/` directory to the corresponding Geeklog MediaGallery directory.
+
+
+## WordPress migration
+
+The current development adapter supports:
+
+- users with deterministic UID remapping when WordPress IDs 1/2 conflict with Geeklog core users
+- WordPress categories to Geeklog topics
+- posts to Geeklog stories
+- pages to Static Pages
+- approved regular comments with parent/child relationships
+- Geeklog comment tree rebuild after import
+- author mapping through the migrated user map
+- post/category topic assignments
+- manual WordPress uploads copy to `public_html/images/wordpress/`
+- URL rewriting for detected WordPress upload URLs inside migrated post/page content
+
+Current limitations:
+
+- WordPress password hashes are not copied; users must set a Geeklog password
+- users without an email address require administrator intervention
+- WordPress tags are reported but not imported yet
+- pingbacks/trackbacks are not imported as comments
+- attachment post records and featured-image metadata are not converted yet
+- plugin-specific WordPress data is not migrated
