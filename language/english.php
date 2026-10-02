@@ -73,5 +73,12 @@ $LANG_MIGRATOR = array(
     'conflicts' => 'Conflicts',
     'skipped' => 'Skipped',
     'no_migration_result' => 'No migration result is available.',
-    'adapter_not_ready' => 'The migration writer for this source is not implemented yet.'
+    'adapter_not_ready' => 'The migration writer for this source is not implemented yet.',
+    'plugin_content' => 'Plugin content',
+    'source_not_detected' => 'No matching source data was detected.',
+    'source_table' => 'Source table',
+    'files_to_copy' => 'Files to copy after database migration',
+    'source_path' => 'Source path',
+    'target_path' => 'Target path',
+    'note' => 'Note'
 );
