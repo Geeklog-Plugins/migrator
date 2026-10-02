@@ -7,7 +7,10 @@ class MigratorSourceDetector
         $names = array_map('strtolower', $tables);
         $sample = strtolower((string) $sqlSample);
 
-        if (self::hasSuffix($names, 'wp_posts') || self::hasSuffix($names, 'wp_options')) {
+        if ((self::hasSuffix($names, 'posts') && self::hasSuffix($names, 'options') && self::hasSuffix($names, 'users'))
+            || self::hasSuffix($names, 'wp_posts')
+            || self::hasSuffix($names, 'wp_options')
+        ) {
             return array(
                 'cms' => 'wordpress',
                 'version' => self::detectWordPressVersion($sample)
