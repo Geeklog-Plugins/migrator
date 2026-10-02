@@ -41,7 +41,19 @@ class MigratorWordPressAdapter extends MigratorLegacyGeeklogAdapter
             $result['warnings'][] = 'WordPress upload base URL could not be detected from wp_options; media URLs are left unchanged.';
         }
 
+        $missingEmail = $this->countUsersWithoutEmail();
         $result['warnings'][] = 'WordPress password hashes are not copied. Imported users must set a Geeklog password through the normal password-reset flow.';
+
+        if ($missingEmail > 0) {
+            $result['warnings'][] = $missingEmail
+                . ' WordPress user(s) have no email address and will require an administrator to set a usable Geeklog password.';
+        }
+
+        $tagCount = $this->countTaxonomy('post_tag');
+        if ($tagCount > 0) {
+            $result['warnings'][] = $tagCount
+                . ' WordPress tag(s) detected. Tags are not mapped to Geeklog topics in this version.';
+        }
 
         return $result;
     }
@@ -442,6 +454,7 @@ class MigratorWordPressAdapter extends MigratorLegacyGeeklogAdapter
         $rows = $this->queryRows(
             "SELECT * FROM {$source}
              WHERE comment_approved = '1'
+             AND comment_type IN ('', 'comment')
              ORDER BY comment_date ASC, comment_ID ASC"
         );
 
@@ -539,6 +552,52 @@ class MigratorWordPressAdapter extends MigratorLegacyGeeklogAdapter
         }
 
         return $stats;
+    }
+
+
+    private function countUsersWithoutEmail()
+    {
+        $source = $this->sourceTable('users');
+        if ($source === '') {
+            return 0;
+        }
+
+        $result = DB_query(
+            "SELECT COUNT(*) AS total FROM {$source}
+             WHERE user_email IS NULL OR TRIM(user_email) = ''",
+            1
+        );
+
+        if ($result === false) {
+            return 0;
+        }
+
+        $row = DB_fetchArray($result);
+
+        return isset($row['total']) ? (int) $row['total'] : 0;
+    }
+
+    private function countTaxonomy($taxonomyName)
+    {
+        $source = $this->sourceTable('term_taxonomy');
+        if ($source === '') {
+            return 0;
+        }
+
+        $taxonomyEsc = DB_escapeString((string) $taxonomyName);
+        $result = DB_query(
+            "SELECT COUNT(*) AS total FROM {$source}
+             WHERE taxonomy = '{$taxonomyEsc}'",
+            1
+        );
+
+        if ($result === false) {
+            return 0;
+        }
+
+        $row = DB_fetchArray($result);
+
+        return isset($row['total']) ? (int) $row['total'] : 0;
     }
 
     private function wordpressMediaBase()
