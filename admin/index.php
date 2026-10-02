@@ -497,7 +497,9 @@ $destinationMessage = $destination['fresh']
 $destinationMessage .= '<p>' . MIGRATOR_escape($LANG_MIGRATOR['destination_counts']) . ': '
     . 'users=' . (int) $destination['counts']['users'] . ', '
     . 'stories=' . (int) $destination['counts']['stories'] . ', '
-    . 'topics=' . (int) $destination['counts']['topics'] . '</p>';
+    . 'topics=' . (int) $destination['counts']['topics'] . ', '
+    . 'comments=' . (int) $destination['counts']['comments'] . ', '
+    . 'staticpages=' . (int) $destination['counts']['staticpages'] . '</p>';
 
 $token = SEC_createToken();
 
