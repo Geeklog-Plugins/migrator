@@ -12,26 +12,31 @@ if (!SEC_hasRights('migrator.admin')) {
 
 require_once $_CONF['path'] . 'plugins/migrator/classes/SqlDumpImporter.php';
 require_once $_CONF['path'] . 'plugins/migrator/classes/SourceDetector.php';
+require_once $_CONF['path'] . 'plugins/migrator/classes/MigrationAnalyzer.php';
 
 function MIGRATOR_adminMessage($text, $type = 'info')
 {
     $title = ($type === 'error') ? 'Error' : 'Migrator';
+
     return COM_showMessageText(MIGRATOR_escape($text), $title);
 }
 
-function MIGRATOR_recordJob($filename, array $result, array $detected)
+function MIGRATOR_recordJob($filename, array $result, array $detected, $sourceCms, array $entities)
 {
     global $_TABLES;
 
     $now = date('Y-m-d H:i:s');
-    $cms = DB_escapeString($detected['cms']);
-    $version = DB_escapeString($detected['version']);
+    $cms = DB_escapeString($sourceCms);
+    $version = ($detected['cms'] === $sourceCms) ? $detected['version'] : '';
+    $version = DB_escapeString($version);
     $file = DB_escapeString($filename);
     $tableMap = DB_escapeString(json_encode($result['table_map']));
     $report = DB_escapeString(json_encode(array(
         'tables' => count($result['source_tables']),
         'executed' => $result['executed'],
-        'skipped' => $result['skipped']
+        'skipped' => $result['skipped'],
+        'detected_cms' => $detected['cms'],
+        'entities' => $entities
     )));
 
     $sql = "INSERT INTO {$_TABLES['migrator_jobs']}
@@ -93,8 +98,15 @@ function MIGRATOR_renderLatestAnalysis()
     $labelKey = isset($LANG_MIGRATOR[$row['source_cms']]) ? $row['source_cms'] : 'unknown';
 
     $html = '<dl class="migrator-analysis">';
-    $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['cms_detected']) . '</dt><dd>'
+    $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['cms_selected']) . '</dt><dd>'
         . MIGRATOR_escape($LANG_MIGRATOR[$labelKey]) . '</dd>';
+
+    if (!empty($report['detected_cms']) && $report['detected_cms'] !== 'unknown') {
+        $detectedKey = isset($LANG_MIGRATOR[$report['detected_cms']]) ? $report['detected_cms'] : 'unknown';
+        $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['cms_detected']) . '</dt><dd>'
+            . MIGRATOR_escape($LANG_MIGRATOR[$detectedKey]) . '</dd>';
+    }
+
     $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['table_count']) . '</dt><dd>'
         . (int) (isset($report['tables']) ? $report['tables'] : 0) . '</dd>';
     $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['statement_count']) . '</dt><dd>'
@@ -102,6 +114,35 @@ function MIGRATOR_renderLatestAnalysis()
     $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['skipped_count']) . '</dt><dd>'
         . (int) (isset($report['skipped']) ? $report['skipped'] : 0) . '</dd>';
     $html .= '</dl>';
+
+    if (!empty($report['entities']) && is_array($report['entities'])) {
+        $html .= '<h3>' . MIGRATOR_escape($LANG_MIGRATOR['recoverable_content']) . '</h3>';
+        $html .= '<div class="migrator-table-wrap"><table class="admin-list"><thead><tr>';
+        $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['content_type']) . '</th>';
+        $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['records']) . '</th>';
+        $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['support_status']) . '</th>';
+        $html .= '</tr></thead><tbody>';
+
+        foreach ($report['entities'] as $entity) {
+            if (empty($entity['table'])) {
+                continue;
+            }
+
+            $status = isset($entity['status']) ? $entity['status'] : 'planned';
+            $statusLabel = isset($LANG_MIGRATOR['status_' . $status])
+                ? $LANG_MIGRATOR['status_' . $status]
+                : $status;
+
+            $html .= '<tr>';
+            $html .= '<td>' . MIGRATOR_escape($entity['label']) . '</td>';
+            $html .= '<td>' . (int) $entity['count'] . '</td>';
+            $html .= '<td>' . MIGRATOR_escape($statusLabel) . '</td>';
+            $html .= '</tr>';
+        }
+
+        $html .= '</tbody></table></div>';
+    }
+
     $html .= '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['next']) . ':</strong> '
         . MIGRATOR_escape($LANG_MIGRATOR['next_text']) . '</p>';
 
@@ -138,7 +179,12 @@ if ($requestMethod === 'POST') {
     if (!SEC_checkToken()) {
         $message = MIGRATOR_adminMessage($LANG_MIGRATOR['security_error'], 'error');
     } elseif ($mode === 'stage') {
-        if (!MIGRATOR_ensureDataDir()) {
+        $allowedCms = array('legacy_geeklog', 'glfusion', 'wordpress');
+        $sourceCms = isset($_POST['source_cms']) ? COM_applyFilter($_POST['source_cms']) : '';
+
+        if (!in_array($sourceCms, $allowedCms, true)) {
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['invalid_source'], 'error');
+        } elseif (!MIGRATOR_ensureDataDir()) {
             $message = MIGRATOR_adminMessage($LANG_MIGRATOR['storage_error'], 'error');
         } elseif (!isset($_FILES['sql_dump']) || !is_array($_FILES['sql_dump'])) {
             $message = MIGRATOR_adminMessage($LANG_MIGRATOR['upload_failed'], 'error');
@@ -162,8 +208,9 @@ if ($requestMethod === 'POST') {
                         $importer = new MigratorSqlDumpImporter();
                         $result = $importer->import($destination);
                         $detected = MigratorSourceDetector::detect($result['source_tables'], $result['sample']);
+                        $entities = MigratorMigrationAnalyzer::analyse($sourceCms, $result['table_map']);
 
-                        if (!MIGRATOR_recordJob($storedName, $result, $detected)) {
+                        if (!MIGRATOR_recordJob($storedName, $result, $detected, $sourceCms, $entities)) {
                             throw new RuntimeException($LANG_MIGRATOR['database_error']);
                         }
 
@@ -186,6 +233,13 @@ $token = SEC_createToken();
 $uploadForm = '<form method="post" enctype="multipart/form-data" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '">';
 $uploadForm .= '<input type="hidden" name="mode" value="stage">';
 $uploadForm .= '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . MIGRATOR_escape($token) . '">';
+$uploadForm .= '<p><label for="source_cms"><strong>' . MIGRATOR_escape($LANG_MIGRATOR['choose_source']) . '</strong></label><br>';
+$uploadForm .= '<select name="source_cms" id="source_cms" required>';
+$uploadForm .= '<option value="">' . MIGRATOR_escape($LANG_MIGRATOR['choose_source_placeholder']) . '</option>';
+$uploadForm .= '<option value="legacy_geeklog">' . MIGRATOR_escape($LANG_MIGRATOR['legacy_geeklog']) . '</option>';
+$uploadForm .= '<option value="glfusion">' . MIGRATOR_escape($LANG_MIGRATOR['glfusion']) . '</option>';
+$uploadForm .= '<option value="wordpress">' . MIGRATOR_escape($LANG_MIGRATOR['wordpress']) . '</option>';
+$uploadForm .= '</select></p>';
 $uploadForm .= '<p><label for="sql_dump"><strong>' . MIGRATOR_escape($LANG_MIGRATOR['sql_file']) . '</strong></label><br>';
 $uploadForm .= '<input type="file" name="sql_dump" id="sql_dump" accept=".sql,text/plain" required></p>';
 $uploadForm .= '<p><button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['import_stage']) . '</button></p>';
