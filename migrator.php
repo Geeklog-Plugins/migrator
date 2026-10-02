@@ -51,7 +51,9 @@ function MIGRATOR_destinationStatus()
     $counts = array(
         'users' => isset($_TABLES['users']) ? (int) DB_count($_TABLES['users']) : -1,
         'stories' => isset($_TABLES['stories']) ? (int) DB_count($_TABLES['stories']) : -1,
-        'topics' => isset($_TABLES['topics']) ? (int) DB_count($_TABLES['topics']) : -1
+        'topics' => isset($_TABLES['topics']) ? (int) DB_count($_TABLES['topics']) : -1,
+        'comments' => isset($_TABLES['comments']) ? (int) DB_count($_TABLES['comments']) : -1,
+        'staticpages' => isset($_TABLES['staticpage']) ? (int) DB_count($_TABLES['staticpage']) : 0
     );
 
     $fresh = $counts['users'] >= 0
@@ -59,7 +61,9 @@ function MIGRATOR_destinationStatus()
         && $counts['stories'] >= 0
         && $counts['stories'] <= 1
         && $counts['topics'] >= 0
-        && $counts['topics'] <= 2;
+        && $counts['topics'] <= 2
+        && $counts['comments'] === 0
+        && $counts['staticpages'] === 0;
 
     return array(
         'fresh' => $fresh,
