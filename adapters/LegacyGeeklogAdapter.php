@@ -399,7 +399,21 @@ class MigratorLegacyGeeklogAdapter
             $targetTable = $type === 'article' ? $_TABLES['stories'] : $_TABLES['staticpage'];
             $targetField = $type === 'article' ? 'sid' : 'sp_id';
 
-            if (DB_count($_TABLES['topics'], 'tid', DB_escapeString($tid)) === 0
+            if ($this->dryRun) {
+                $sourceTopics = $this->sourceTable('topics');
+                $sourceItems = $type === 'article'
+                    ? $this->sourceTable('stories')
+                    : $this->sourceTable('staticpage');
+
+                if ($sourceTopics === ''
+                    || $sourceItems === ''
+                    || !$this->rowExists($sourceTopics, 'tid', $tid)
+                    || !$this->rowExists($sourceItems, $targetField, $id)
+                ) {
+                    ++$stats['skipped'];
+                    continue;
+                }
+            } elseif (DB_count($_TABLES['topics'], 'tid', DB_escapeString($tid)) === 0
                 || DB_count($targetTable, $targetField, DB_escapeString($id)) === 0
             ) {
                 ++$stats['skipped'];
@@ -520,6 +534,30 @@ class MigratorLegacyGeeklogAdapter
         }
 
         return $rows;
+    }
+
+
+    protected function rowExists($table, $field, $value)
+    {
+        $columns = $this->columns($table);
+        if (!isset($columns[$field])) {
+            return false;
+        }
+
+        $fieldSafe = preg_replace('/[^A-Za-z0-9_]/', '', $field);
+        $valueEsc = DB_escapeString((string) $value);
+        $result = DB_query(
+            "SELECT COUNT(*) AS total FROM {$table} WHERE {$fieldSafe} = '{$valueEsc}'",
+            1
+        );
+
+        if ($result === false) {
+            return false;
+        }
+
+        $row = DB_fetchArray($result);
+
+        return isset($row['total']) && (int) $row['total'] > 0;
     }
 
     protected function fetchOneBy($table, $field, $value)
