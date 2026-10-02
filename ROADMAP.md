@@ -396,6 +396,8 @@ Current development status: the initial glFusion Forum and MediaGallery database
 
 ## 0.3.0 — WordPress support
 
+Current development status: an initial WordPress migration writer is already implemented on `develop-0.1.0` for users, categories, posts, pages and approved comments. Media attachment records, tags and plugin-specific data remain future work.
+
 - WordPress detection
 - users
 - posts
