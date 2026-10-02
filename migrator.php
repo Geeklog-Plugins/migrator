@@ -67,6 +67,93 @@ function MIGRATOR_destinationStatus()
     );
 }
 
+
+function MIGRATOR_prepareFreshDestination($sourceCms, array $tableMap)
+{
+    global $_TABLES;
+
+    $status = MIGRATOR_destinationStatus();
+    if (!$status['fresh']) {
+        return false;
+    }
+
+    if (isset($_TABLES['topic_assignments'])) {
+        DB_query("DELETE FROM {$_TABLES['topic_assignments']} WHERE type = 'article'");
+    }
+
+    if (isset($_TABLES['comments'])) {
+        DB_query("DELETE FROM {$_TABLES['comments']} WHERE type IN ('article', 'staticpages')");
+    }
+
+    if (isset($_TABLES['stories'])) {
+        DB_query("DELETE FROM {$_TABLES['stories']}");
+    }
+
+    if (isset($_TABLES['topics'])) {
+        DB_query("DELETE FROM {$_TABLES['topics']}");
+    }
+
+    if ($sourceCms === 'glfusion') {
+        $hasForum = false;
+        foreach ($tableMap as $source => $target) {
+            if (substr(strtolower($source), -8) === 'ff_topic') {
+                $hasForum = true;
+                break;
+            }
+        }
+
+        if ($hasForum) {
+            foreach (array(
+                'forum_log',
+                'forum_moderators',
+                'forum_userprefs',
+                'forum_banned_ip',
+                'forum_userinfo',
+                'forum_topic',
+                'forum_forums',
+                'forum_categories'
+            ) as $tableKey) {
+                if (isset($_TABLES[$tableKey])) {
+                    DB_query("DELETE FROM {$_TABLES[$tableKey]}");
+                }
+            }
+        }
+
+        $hasMediaGallery = false;
+        foreach ($tableMap as $source => $target) {
+            if (substr(strtolower($source), -9) === 'mg_albums') {
+                $hasMediaGallery = true;
+                break;
+            }
+        }
+
+        if ($hasMediaGallery) {
+            foreach (array(
+                'mg_media_albums',
+                'mg_media_album_queue',
+                'mg_playback_options',
+                'mg_usage_tracking',
+                'mg_userprefs',
+                'mg_sessions',
+                'mg_session_items',
+                'mg_session_log',
+                'mg_sort',
+                'mg_rating',
+                'mg_mediaqueue',
+                'mg_media',
+                'mg_albums',
+                'mg_category'
+            ) as $tableKey) {
+                if (isset($_TABLES[$tableKey])) {
+                    DB_query("DELETE FROM {$_TABLES[$tableKey]}");
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
 function MIGRATOR_escape($value)
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
