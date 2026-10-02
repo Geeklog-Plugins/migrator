@@ -206,6 +206,10 @@ function MIGRATOR_runCoreJob($jobId, $dryRun)
         $report = array();
     }
 
+    if (!$dryRun && !MIGRATOR_prepareFreshDestination($job['source_cms'], $tableMap)) {
+        throw new RuntimeException('Destination is no longer a fresh Geeklog installation.');
+    }
+
     $entities = array('users', 'topics', 'stories', 'comments', 'staticpages');
 
     if ($job['source_cms'] === 'glfusion') {
