@@ -21,8 +21,15 @@ function plugin_getadminoption_migrator()
 {
     global $LANG_MIGRATOR;
 
+    if (!SEC_hasRights('migrator.admin')) {
+        return array();
+    }
+
     return array(
-        $LANG_MIGRATOR['plugin_name'] => MIGRATOR_adminUrl()
+        $LANG_MIGRATOR['plugin_name'],
+        MIGRATOR_adminUrl(),
+        0,
+        'Migrator Admin'
     );
 }
 
@@ -46,7 +53,7 @@ function MIGRATOR_dropAllStagingTables()
     }
 }
 
-function plugin_autouninstall_migrator($pi_name)
+function plugin_autouninstall_migrator()
 {
     MIGRATOR_dropAllStagingTables();
 
