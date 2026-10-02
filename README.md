@@ -37,6 +37,10 @@ The `develop-0.1.0` branch currently provides:
 - legacy Geeklog dry run
 - legacy Geeklog core migration writer
 - glFusion core migration writer using the Geeklog-compatible core path
+- glFusion Forum migration for categories, forums, posts, logs, moderators, user preferences, banned IPs and forum profile data
+- glFusion MediaGallery migration for albums, media, album relations, queues, playback options, usage tracking, user preferences, watermarks, categories, sessions, sorting, ratings and EXIF settings
+- MediaGallery `opacity` -> `wm_opacity` field conversion
+- post-migration file manifest for MediaGallery mediaobjects and unsupported Forum attachments
 - ID preservation for users, topics, stories, comments and Static Pages when safe
 - migration of legacy user profile fields into Geeklog 2.2.2 `user_attributes`
 - automatic membership of imported users in the destination core groups
@@ -75,3 +79,18 @@ Migrator follows the development and administration principles documented in:
 - repeatable installation and complete auto-uninstall cleanup
 
 See [ROADMAP.md](ROADMAP.md) for the migration scope and milestones.
+
+
+## glFusion plugin migration notes
+
+### Forum
+
+The current adapter migrates the compatible Forum data into the current Geeklog Forum tables.
+
+The legacy glFusion tables `ff_attachments`, `ff_bookmarks` and `ff_rating_assoc` do not have direct equivalents in the current target schema and are reported instead of being forced into an unsafe mapping.
+
+### MediaGallery
+
+The database schemas are highly compatible. Most MediaGallery tables migrate through their common columns while preserving IDs and relationships.
+
+Media files are intentionally **not copied by Migrator**. After database migration, the administrator is instructed to copy the complete source `public_html/mediagallery/mediaobjects/` directory to the corresponding Geeklog MediaGallery directory.
