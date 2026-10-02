@@ -383,6 +383,8 @@ Initial content support:
 
 ## 0.2.0 — Geeklog and glFusion extended content
 
+Current development status: the initial glFusion Forum and MediaGallery database migration path has been implemented on `develop-0.1.0`. Unsupported Forum attachment/bookmark/rating tables are reported rather than force-mapped.
+
 - polls
 - calendar
 - groups and permissions where safe
