@@ -14,7 +14,7 @@ function plugin_autoinstall_migrator($pi_name)
         'info' => array(
             'pi_name' => $pi_name,
             'pi_display_name' => $pi_display_name,
-            'pi_version' => '0.1.0',
+            'pi_version' => '1.0.0',
             'pi_gl_version' => '2.2.2',
             'pi_homepage' => 'https://github.com/hostellerie/migrator'
         ),
@@ -53,6 +53,6 @@ function plugin_compatible_with_this_version_migrator($pi_name)
 
 function plugin_postinstall_migrator($pi_name)
 {
-    COM_errorLog('Migrator 0.1.0 installation completed.', 1);
+    COM_errorLog('Migrator 1.0.0 installation completed.', 1);
     return true;
 }
