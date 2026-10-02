@@ -12,7 +12,12 @@ class MigratorMigrationAnalyzer
             $count = 0;
 
             if ($match !== '') {
-                $result = DB_query('SELECT COUNT(*) AS total FROM ' . $match, 1);
+                $sql = 'SELECT COUNT(*) AS total FROM ' . $match;
+                if (!empty($definition['where'])) {
+                    $sql .= ' WHERE ' . $definition['where'];
+                }
+
+                $result = DB_query($sql, 1);
                 if ($result !== false) {
                     $row = DB_fetchArray($result);
                     $count = isset($row['total']) ? (int) $row['total'] : 0;
@@ -34,11 +39,35 @@ class MigratorMigrationAnalyzer
     {
         if ($cms === 'wordpress') {
             return array(
-                'users' => array('label' => 'Users', 'suffixes' => array('users'), 'status' => 'supported'),
-                'posts' => array('label' => 'Posts and pages', 'suffixes' => array('posts'), 'status' => 'supported'),
-                'comments' => array('label' => 'Comments', 'suffixes' => array('comments'), 'status' => 'supported'),
-                'terms' => array('label' => 'Categories and tags', 'suffixes' => array('term_taxonomy'), 'status' => 'supported'),
-                'media' => array('label' => 'Media references', 'suffixes' => array('posts'), 'status' => 'supported')
+                'users' => array(
+                    'label' => 'Users',
+                    'suffixes' => array('users'),
+                    'status' => 'supported'
+                ),
+                'posts' => array(
+                    'label' => 'Posts and pages',
+                    'suffixes' => array('posts'),
+                    'status' => 'supported',
+                    'where' => "post_type IN ('post','page') AND post_status IN ('publish','draft','private','pending')"
+                ),
+                'comments' => array(
+                    'label' => 'Approved comments',
+                    'suffixes' => array('comments'),
+                    'status' => 'supported',
+                    'where' => "comment_approved = '1'"
+                ),
+                'terms' => array(
+                    'label' => 'Categories',
+                    'suffixes' => array('term_taxonomy'),
+                    'status' => 'supported',
+                    'where' => "taxonomy = 'category'"
+                ),
+                'media' => array(
+                    'label' => 'Media attachments',
+                    'suffixes' => array('posts'),
+                    'status' => 'planned',
+                    'where' => "post_type = 'attachment'"
+                )
             );
         }
 
@@ -57,17 +86,17 @@ class MigratorMigrationAnalyzer
             $definitions['forum'] = array(
                 'label' => 'Forum topics',
                 'suffixes' => array('ff_topic'),
-                'status' => 'planned'
+                'status' => 'supported'
             );
             $definitions['mediagallery_albums'] = array(
                 'label' => 'MediaGallery albums',
                 'suffixes' => array('mg_albums'),
-                'status' => 'planned'
+                'status' => 'supported'
             );
             $definitions['mediagallery_media'] = array(
                 'label' => 'MediaGallery media',
                 'suffixes' => array('mg_media'),
-                'status' => 'planned'
+                'status' => 'supported'
             );
         }
 
