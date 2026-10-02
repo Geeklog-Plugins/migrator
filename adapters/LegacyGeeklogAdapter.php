@@ -79,12 +79,50 @@ class MigratorLegacyGeeklogAdapter
                 ++$stats[$this->dryRun ? 'would_import' : 'imported'];
                 $this->mapId('user', $uid, $uid, $this->dryRun ? 'planned' : 'imported');
                 $this->migrateUserAttributes($uid);
+                $this->ensureCoreUserGroups($uid);
             } else {
                 ++$stats['skipped'];
             }
         }
 
         return $stats;
+    }
+
+
+    private function ensureCoreUserGroups($uid)
+    {
+        global $_TABLES;
+
+        if ($this->dryRun || !isset($_TABLES['groups'], $_TABLES['group_assignments'])) {
+            return;
+        }
+
+        $groupNames = array('All Users', 'Logged-in Users');
+
+        foreach ($groupNames as $groupName) {
+            $groupNameEsc = DB_escapeString($groupName);
+            $groupId = (int) DB_getItem(
+                $_TABLES['groups'],
+                'grp_id',
+                "grp_name = '{$groupNameEsc}'"
+            );
+
+            if ($groupId <= 0) {
+                $this->log('warning', 'user', $uid, 'Destination core group not found: ' . $groupName);
+                continue;
+            }
+
+            $sql = "SELECT COUNT(*) AS total FROM {$_TABLES['group_assignments']}
+                WHERE ug_main_grp_id = {$groupId} AND ug_uid = " . (int) $uid;
+            $result = DB_query($sql);
+            $row = DB_fetchArray($result);
+
+            if ((int) $row['total'] === 0) {
+                DB_query("INSERT INTO {$_TABLES['group_assignments']}
+                    (ug_main_grp_id, ug_uid, ug_grp_id)
+                    VALUES ({$groupId}, " . (int) $uid . ", NULL)");
+            }
+        }
     }
 
     private function migrateUserAttributes($uid)
