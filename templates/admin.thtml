@@ -29,6 +29,7 @@
     <section class="migrator-section">
         <h2>{analysis_title}</h2>
         {analysis}
+        {migration_actions}
     </section>
 
     <section class="migrator-section migrator-danger">
