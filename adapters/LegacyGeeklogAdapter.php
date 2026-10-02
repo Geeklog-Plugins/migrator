@@ -2,9 +2,9 @@
 
 class MigratorLegacyGeeklogAdapter
 {
-    private $jobId;
-    private $tableMap;
-    private $dryRun;
+    protected $jobId;
+    protected $tableMap;
+    protected $dryRun;
 
     public function __construct($jobId, array $tableMap, $dryRun = true)
     {
@@ -439,7 +439,7 @@ class MigratorLegacyGeeklogAdapter
         return $stats;
     }
 
-    private function copyIntersectionRow($sourceTable, $targetTable, array $row, array $required, $logFailure = true)
+    protected function copyIntersectionRow($sourceTable, $targetTable, array $row, array $required, $logFailure = true)
     {
         $targetColumns = $this->columns($targetTable);
         if (empty($targetColumns)) {
@@ -487,7 +487,7 @@ class MigratorLegacyGeeklogAdapter
         return array('ok' => $ok, 'columns' => array_keys($data));
     }
 
-    private function columns($table)
+    protected function columns($table)
     {
         static $cache = array();
 
@@ -510,7 +510,7 @@ class MigratorLegacyGeeklogAdapter
         return $cache[$table];
     }
 
-    private function fetchRows($table)
+    protected function fetchRows($table)
     {
         $rows = array();
         $result = DB_query('SELECT * FROM ' . $table);
@@ -522,7 +522,7 @@ class MigratorLegacyGeeklogAdapter
         return $rows;
     }
 
-    private function fetchOneBy($table, $field, $value)
+    protected function fetchOneBy($table, $field, $value)
     {
         $columns = $this->columns($table);
         if (!isset($columns[$field])) {
@@ -539,7 +539,7 @@ class MigratorLegacyGeeklogAdapter
         return DB_fetchArray($result);
     }
 
-    private function sourceTable($suffix)
+    protected function sourceTable($suffix)
     {
         $suffix = strtolower($suffix);
 
@@ -553,7 +553,7 @@ class MigratorLegacyGeeklogAdapter
         return '';
     }
 
-    private function mapId($entityType, $sourceId, $targetId, $status)
+    protected function mapId($entityType, $sourceId, $targetId, $status)
     {
         global $_TABLES;
 
@@ -572,7 +572,7 @@ class MigratorLegacyGeeklogAdapter
             ON DUPLICATE KEY UPDATE target_id = '{$target}', status = '{$status}'");
     }
 
-    private function log($level, $entityType, $sourceId, $message)
+    protected function log($level, $entityType, $sourceId, $message)
     {
         global $_TABLES;
 
@@ -587,7 +587,7 @@ class MigratorLegacyGeeklogAdapter
             VALUES ({$this->jobId}, '{$level}', '{$entity}', '{$source}', '{$message}', '{$now}')");
     }
 
-    private function stats()
+    protected function stats()
     {
         return array(
             'would_import' => 0,
@@ -598,7 +598,7 @@ class MigratorLegacyGeeklogAdapter
         );
     }
 
-    private function emptyResult($warning)
+    protected function emptyResult($warning)
     {
         $stats = $this->stats();
         $stats['warning'] = $warning;
