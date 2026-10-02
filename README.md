@@ -34,11 +34,21 @@ The `develop-0.1.0` branch currently provides:
 - migration job tracking
 - source/target ID mapping table
 - migration log table
+- legacy Geeklog dry run
+- legacy Geeklog core migration writer
+- glFusion core migration writer using the Geeklog-compatible core path
+- ID preservation for users, topics, stories, comments and Static Pages when safe
+- migration of legacy user profile fields into Geeklog 2.2.2 `user_attributes`
+- automatic membership of imported users in the destination core groups
+- migration of article/Static Page topic assignments
+- preservation of legacy password hashes supported by Geeklog 2.2.2, with normal rehash-on-login behavior
 - CSRF protection
 - staged-source purge
 - complete autouninstall metadata for plugin-owned tables, group and feature
 
-At this stage, staging and analysis do **not** modify Geeklog destination content.
+Staging and analysis do **not** modify Geeklog destination content.
+
+For Legacy Geeklog and glFusion core content, the administrator can then run an explicit **Dry run** followed by a confirmed **Migration** action. Migration writes are refused when the destination no longer matches the expected fresh-install baseline.
 
 ## Safety model
 
