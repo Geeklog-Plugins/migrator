@@ -17,3 +17,5 @@ jobs:
       - name: Lint PHP files
         run: |
           find . -type f \( -name '*.php' -o -name '*.inc' \) -print0 | xargs -0 -n1 php -l
+      - name: Run migration smoke tests
+        run: php tests/smoke.php
