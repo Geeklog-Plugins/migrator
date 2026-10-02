@@ -89,7 +89,7 @@ class MigratorLegacyGeeklogAdapter
     }
 
 
-    private function ensureCoreUserGroups($uid)
+    protected function ensureCoreUserGroups($uid)
     {
         global $_TABLES;
 
