@@ -160,6 +160,21 @@ function MIGRATOR_prepareFreshDestination($sourceCms, array $tableMap)
 
 
 
+
+function MIGRATOR_refreshTopicState()
+{
+    global $_TOPICS;
+
+    if (function_exists('CACHE_remove_instance')) {
+        CACHE_remove_instance('topic_tree__');
+        CACHE_remove_instance('topicsblock__');
+    }
+
+    if (function_exists('TOPIC_buildTree') && defined('TOPIC_ROOT')) {
+        $_TOPICS = TOPIC_buildTree(TOPIC_ROOT, true);
+    }
+}
+
 function MIGRATOR_isPluginActive($pluginName)
 {
     global $_TABLES;
@@ -284,6 +299,8 @@ function MIGRATOR_resetTestInstallation()
             }
         }
     }
+
+    MIGRATOR_refreshTopicState();
 
     return true;
 }
