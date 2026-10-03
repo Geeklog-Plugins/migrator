@@ -54,32 +54,34 @@ function MIGRATOR_renderJobs()
 {
     global $_TABLES, $LANG_MIGRATOR;
 
-    $result = DB_query("SELECT * FROM {$_TABLES['migrator_jobs']} ORDER BY job_id DESC");
+    $result = DB_query("SELECT * FROM {$_TABLES['migrator_jobs']} ORDER BY job_id DESC LIMIT 1");
 
     if (DB_numRows($result) === 0) {
-        return '<p>' . MIGRATOR_escape($LANG_MIGRATOR['no_jobs']) . '</p>';
+        return '<p class="migrator-muted">' . MIGRATOR_escape($LANG_MIGRATOR['no_jobs']) . '</p>';
     }
 
-    $html = '<div class="migrator-table-wrap"><table class="admin-list"><thead><tr>';
-    $html .= '<th>ID</th>';
-    $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['source']) . '</th>';
-    $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['version']) . '</th>';
-    $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['status']) . '</th>';
-    $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['created']) . '</th>';
-    $html .= '</tr></thead><tbody>';
+    $row = DB_fetchArray($result);
+    $labelKey = isset($LANG_MIGRATOR[$row['source_cms']]) ? $row['source_cms'] : 'unknown';
+    $version = trim((string) $row['source_version']);
 
-    while ($row = DB_fetchArray($result)) {
-        $labelKey = isset($LANG_MIGRATOR[$row['source_cms']]) ? $row['source_cms'] : 'unknown';
-        $html .= '<tr>';
-        $html .= '<td>' . (int) $row['job_id'] . '</td>';
-        $html .= '<td>' . MIGRATOR_escape($LANG_MIGRATOR[$labelKey]) . '</td>';
-        $html .= '<td>' . MIGRATOR_escape($row['source_version']) . '</td>';
-        $html .= '<td>' . MIGRATOR_escape($row['status']) . '</td>';
-        $html .= '<td>' . MIGRATOR_escape($row['created']) . '</td>';
-        $html .= '</tr>';
+    $html = '<div class="migrator-grid">';
+    $html .= '<div class="migrator-metric"><div class="migrator-metric__label">'
+        . MIGRATOR_escape($LANG_MIGRATOR['source']) . '</div><div class="migrator-metric__value">'
+        . MIGRATOR_escape($LANG_MIGRATOR[$labelKey]) . '</div></div>';
+    $html .= '<div class="migrator-metric"><div class="migrator-metric__label">'
+        . MIGRATOR_escape($LANG_MIGRATOR['status']) . '</div><div class="migrator-metric__value">'
+        . '<span class="migrator-status">' . MIGRATOR_escape($row['status']) . '</span></div></div>';
+    $html .= '<div class="migrator-metric"><div class="migrator-metric__label">'
+        . MIGRATOR_escape($LANG_MIGRATOR['created']) . '</div><div class="migrator-metric__value">'
+        . MIGRATOR_escape($row['created']) . '</div></div>';
+
+    if ($version !== '') {
+        $html .= '<div class="migrator-metric"><div class="migrator-metric__label">'
+            . MIGRATOR_escape($LANG_MIGRATOR['version']) . '</div><div class="migrator-metric__value">'
+            . MIGRATOR_escape($version) . '</div></div>';
     }
 
-    $html .= '</tbody></table></div>';
+    $html .= '</div>';
 
     return $html;
 }
@@ -90,7 +92,7 @@ function MIGRATOR_renderLatestAnalysis()
 
     $result = DB_query("SELECT * FROM {$_TABLES['migrator_jobs']} ORDER BY job_id DESC LIMIT 1");
     if (DB_numRows($result) === 0) {
-        return '<p>' . MIGRATOR_escape($LANG_MIGRATOR['no_jobs']) . '</p>';
+        return '<p class="migrator-muted">' . MIGRATOR_escape($LANG_MIGRATOR['no_jobs']) . '</p>';
     }
 
     $row = DB_fetchArray($result);
@@ -100,24 +102,32 @@ function MIGRATOR_renderLatestAnalysis()
     }
 
     $labelKey = isset($LANG_MIGRATOR[$row['source_cms']]) ? $row['source_cms'] : 'unknown';
+    $selectedLabel = $LANG_MIGRATOR[$labelKey];
 
-    $html = '<dl class="migrator-analysis">';
-    $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['cms_selected']) . '</dt><dd>'
-        . MIGRATOR_escape($LANG_MIGRATOR[$labelKey]) . '</dd>';
+    $html = '<div class="migrator-grid">';
+    $html .= '<div class="migrator-metric"><div class="migrator-metric__label">'
+        . MIGRATOR_escape($LANG_MIGRATOR['source']) . '</div><div class="migrator-metric__value">'
+        . MIGRATOR_escape($selectedLabel) . '</div></div>';
+    $html .= '<div class="migrator-metric"><div class="migrator-metric__label">'
+        . MIGRATOR_escape($LANG_MIGRATOR['table_count']) . '</div><div class="migrator-metric__value">'
+        . (int) (isset($report['tables']) ? $report['tables'] : 0) . '</div></div>';
+    $html .= '<div class="migrator-metric"><div class="migrator-metric__label">'
+        . MIGRATOR_escape($LANG_MIGRATOR['statement_count']) . '</div><div class="migrator-metric__value">'
+        . (int) (isset($report['executed']) ? $report['executed'] : 0) . '</div></div>';
+    $html .= '<div class="migrator-metric"><div class="migrator-metric__label">'
+        . MIGRATOR_escape($LANG_MIGRATOR['skipped_count']) . '</div><div class="migrator-metric__value">'
+        . (int) (isset($report['skipped']) ? $report['skipped'] : 0) . '</div></div>';
+    $html .= '</div>';
 
-    if (!empty($report['detected_cms']) && $report['detected_cms'] !== 'unknown') {
+    if (!empty($report['detected_cms'])
+        && $report['detected_cms'] !== 'unknown'
+        && $report['detected_cms'] !== $row['source_cms']
+    ) {
         $detectedKey = isset($LANG_MIGRATOR[$report['detected_cms']]) ? $report['detected_cms'] : 'unknown';
-        $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['cms_detected']) . '</dt><dd>'
-            . MIGRATOR_escape($LANG_MIGRATOR[$detectedKey]) . '</dd>';
+        $html .= '<div class="migrator-warning"><strong>'
+            . MIGRATOR_escape($LANG_MIGRATOR['cms_detected']) . ':</strong> '
+            . MIGRATOR_escape($LANG_MIGRATOR[$detectedKey]) . '</div>';
     }
-
-    $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['table_count']) . '</dt><dd>'
-        . (int) (isset($report['tables']) ? $report['tables'] : 0) . '</dd>';
-    $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['statement_count']) . '</dt><dd>'
-        . (int) (isset($report['executed']) ? $report['executed'] : 0) . '</dd>';
-    $html .= '<dt>' . MIGRATOR_escape($LANG_MIGRATOR['skipped_count']) . '</dt><dd>'
-        . (int) (isset($report['skipped']) ? $report['skipped'] : 0) . '</dd>';
-    $html .= '</dl>';
 
     if (!empty($report['entities']) && is_array($report['entities'])) {
         $html .= '<h3>' . MIGRATOR_escape($LANG_MIGRATOR['recoverable_content']) . '</h3>';
@@ -137,13 +147,8 @@ function MIGRATOR_renderLatestAnalysis()
             $statusLabel = isset($LANG_MIGRATOR['status_' . $status])
                 ? $LANG_MIGRATOR['status_' . $status]
                 : $status;
-
-            $html .= '<tr>';
-            $html .= '<td>' . MIGRATOR_escape($entity['label']) . '</td>';
-            $html .= '<td>' . (int) $entity['count'] . '</td>';
-            $html .= '<td>' . MIGRATOR_escape($statusLabel) . '</td>';
-
             $requiredPlugin = isset($entity['required_plugin']) ? (string) $entity['required_plugin'] : '';
+
             if ($requiredPlugin === '') {
                 $pluginStatus = $LANG_MIGRATOR['plugin_not_required'];
             } elseif (!empty($entity['plugin_active'])) {
@@ -152,6 +157,10 @@ function MIGRATOR_renderLatestAnalysis()
                 $pluginStatus = $requiredPlugin . ' — ' . $LANG_MIGRATOR['plugin_missing'];
             }
 
+            $html .= '<tr>';
+            $html .= '<td><strong>' . MIGRATOR_escape($entity['label']) . '</strong></td>';
+            $html .= '<td>' . (int) $entity['count'] . '</td>';
+            $html .= '<td>' . MIGRATOR_escape($statusLabel) . '</td>';
             $html .= '<td>' . MIGRATOR_escape($pluginStatus) . '</td>';
             $html .= '</tr>';
         }
@@ -159,13 +168,11 @@ function MIGRATOR_renderLatestAnalysis()
         $html .= '</tbody></table></div>';
     }
 
-    $html .= '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['next']) . ':</strong> '
+    $html .= '<p class="migrator-muted"><strong>' . MIGRATOR_escape($LANG_MIGRATOR['next']) . ':</strong> '
         . MIGRATOR_escape($LANG_MIGRATOR['next_text']) . '</p>';
 
     return $html;
 }
-
-
 
 function MIGRATOR_loadJob($jobId)
 {
@@ -610,32 +617,40 @@ if ($requestMethod === 'POST') {
 }
 
 $destination = MIGRATOR_destinationStatus();
-$destinationMessage = $destination['fresh']
-    ? '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['destination_fresh']) . '</strong></p>'
-    : '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['destination_not_fresh']) . '</strong></p>';
-$destinationMessage .= '<p>' . MIGRATOR_escape($LANG_MIGRATOR['destination_counts']) . ': '
-    . 'users=' . (int) $destination['counts']['users'] . ', '
-    . 'stories=' . (int) $destination['counts']['stories'] . ', '
-    . 'topics=' . (int) $destination['counts']['topics'] . ', '
-    . 'comments=' . (int) $destination['counts']['comments'] . ', '
-    . 'staticpages=' . (int) $destination['counts']['staticpages'] . '</p>';
+$destinationMessage = '<p class="' . ($destination['fresh'] ? 'migrator-ok' : 'migrator-warning') . '">'
+    . '<span class="migrator-status">'
+    . MIGRATOR_escape($destination['fresh'] ? $LANG_MIGRATOR['destination_ready'] : $LANG_MIGRATOR['destination_blocked'])
+    . '</span> '
+    . MIGRATOR_escape($destination['fresh'] ? $LANG_MIGRATOR['destination_fresh'] : $LANG_MIGRATOR['destination_not_fresh'])
+    . '</p>';
+$destinationMessage .= '<div class="migrator-grid">';
+foreach (array('users', 'stories', 'topics', 'comments', 'staticpages') as $countKey) {
+    $destinationMessage .= '<div class="migrator-metric"><div class="migrator-metric__label">'
+        . MIGRATOR_escape(isset($LANG_MIGRATOR['count_' . $countKey]) ? $LANG_MIGRATOR['count_' . $countKey] : $countKey)
+        . '</div><div class="migrator-metric__value">'
+        . (int) $destination['counts'][$countKey]
+        . '</div></div>';
+}
+$destinationMessage .= '</div>';
 
 $token = SEC_createToken();
 
 $uploadForm = '<form method="post" enctype="multipart/form-data" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '">';
 $uploadForm .= '<input type="hidden" name="mode" value="stage">';
 $uploadForm .= '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . MIGRATOR_escape($token) . '">';
-$uploadForm .= '<p><label for="source_cms"><strong>' . MIGRATOR_escape($LANG_MIGRATOR['choose_source']) . '</strong></label><br>';
+$uploadForm .= '<div class="migrator-upload-grid">';
+$uploadForm .= '<div><label for="source_cms"><strong>' . MIGRATOR_escape($LANG_MIGRATOR['choose_source']) . '</strong></label><br>';
 $uploadForm .= '<select name="source_cms" id="source_cms" required>';
 $uploadForm .= '<option value="">' . MIGRATOR_escape($LANG_MIGRATOR['choose_source_placeholder']) . '</option>';
 $uploadForm .= '<option value="legacy_geeklog">' . MIGRATOR_escape($LANG_MIGRATOR['legacy_geeklog']) . '</option>';
 $uploadForm .= '<option value="glfusion">' . MIGRATOR_escape($LANG_MIGRATOR['glfusion']) . '</option>';
 $uploadForm .= '<option value="wordpress">' . MIGRATOR_escape($LANG_MIGRATOR['wordpress']) . '</option>';
-$uploadForm .= '</select></p>';
-$uploadForm .= '<p><label for="sql_dump"><strong>' . MIGRATOR_escape($LANG_MIGRATOR['sql_file']) . '</strong></label><br>';
-$uploadForm .= '<input type="file" name="sql_dump" id="sql_dump" accept=".sql,.sql.gz,.gz,.zip,application/sql,text/plain,application/gzip,application/zip" required></p>';
-$uploadForm .= '<p>' . MIGRATOR_escape($LANG_MIGRATOR['accepted_formats']) . '</p>';
-$uploadForm .= '<p><button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['import_stage']) . '</button></p>';
+$uploadForm .= '</select></div>';
+$uploadForm .= '<div><label for="sql_dump"><strong>' . MIGRATOR_escape($LANG_MIGRATOR['sql_file']) . '</strong></label><br>';
+$uploadForm .= '<input type="file" name="sql_dump" id="sql_dump" accept=".sql,.sql.gz,.gz,.zip,application/sql,text/plain,application/gzip,application/zip" required></div>';
+$uploadForm .= '</div>';
+$uploadForm .= '<p class="migrator-muted">' . MIGRATOR_escape($LANG_MIGRATOR['accepted_formats']) . '</p>';
+$uploadForm .= '<div class="migrator-actions"><button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['import_stage']) . '</button></div>';
 $uploadForm .= '</form>';
 
 $purgeToken = SEC_createToken();
@@ -657,6 +672,7 @@ $template->set_var(array(
     'step_2' => MIGRATOR_escape($LANG_MIGRATOR['step_2']),
     'step_3' => MIGRATOR_escape($LANG_MIGRATOR['step_3']),
     'fresh_warning' => MIGRATOR_escape($LANG_MIGRATOR['fresh_warning']),
+    'destination_title' => MIGRATOR_escape($LANG_MIGRATOR['destination_title']),
     'safe_stage' => MIGRATOR_escape($LANG_MIGRATOR['safe_stage']),
     'destination_status' => $destinationMessage,
     'upload_title' => MIGRATOR_escape($LANG_MIGRATOR['upload']),
