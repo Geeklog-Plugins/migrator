@@ -158,6 +158,107 @@ function MIGRATOR_prepareFreshDestination($sourceCms, array $tableMap)
     return true;
 }
 
+
+function MIGRATOR_hasCompletedMigration()
+{
+    global $_TABLES;
+
+    if (!isset($_TABLES['migrator_jobs'])) {
+        return false;
+    }
+
+    return (int) DB_count($_TABLES['migrator_jobs'], 'status', 'migrated') > 0;
+}
+
+function MIGRATOR_resetTestInstallation()
+{
+    global $_TABLES;
+
+    if (!MIGRATOR_hasCompletedMigration()) {
+        return false;
+    }
+
+    if (isset($_TABLES['topic_assignments'])) {
+        DB_query("DELETE FROM {$_TABLES['topic_assignments']} WHERE type IN ('article', 'staticpages')");
+    }
+
+    if (isset($_TABLES['comments'])) {
+        DB_query("DELETE FROM {$_TABLES['comments']} WHERE type IN ('article', 'staticpages')");
+    }
+
+    if (isset($_TABLES['stories'])) {
+        DB_query("DELETE FROM {$_TABLES['stories']}");
+    }
+
+    if (isset($_TABLES['staticpage'])) {
+        DB_query("DELETE FROM {$_TABLES['staticpage']}");
+    }
+
+    if (isset($_TABLES['topics'])) {
+        DB_query("DELETE FROM {$_TABLES['topics']}");
+    }
+
+    foreach (array(
+        'commentnotifications' => 'uid',
+        'commentedits' => 'uid',
+        'group_assignments' => 'ug_uid',
+        'likes' => 'uid',
+        'sessions' => 'uid',
+        'tokens' => 'owner_id',
+        'user_attributes' => 'uid',
+        'userautologin' => 'uid',
+        'backup_codes' => 'uid'
+    ) as $tableKey => $uidField) {
+        if (isset($_TABLES[$tableKey])) {
+            DB_query("DELETE FROM {$_TABLES[$tableKey]} WHERE {$uidField} > 2");
+        }
+    }
+
+    if (isset($_TABLES['users'])) {
+        DB_query("DELETE FROM {$_TABLES['users']} WHERE uid > 2");
+    }
+
+    foreach (array(
+        'forum_log',
+        'forum_moderators',
+        'forum_userprefs',
+        'forum_banned_ip',
+        'forum_userinfo',
+        'forum_topic',
+        'forum_forums',
+        'forum_categories'
+    ) as $tableKey) {
+        if (isset($_TABLES[$tableKey])) {
+            DB_query("DELETE FROM {$_TABLES[$tableKey]}");
+        }
+    }
+
+    foreach (array(
+        'mg_media_albums',
+        'mg_media_album_queue',
+        'mg_playback_options',
+        'mg_usage_tracking',
+        'mg_userprefs',
+        'mg_sessions',
+        'mg_session_items',
+        'mg_session_log',
+        'mg_sort',
+        'mg_rating',
+        'mg_mediaqueue',
+        'mg_media',
+        'mg_albums',
+        'mg_category',
+        'mg_watermarks',
+        'mg_exif_tags'
+    ) as $tableKey) {
+        if (isset($_TABLES[$tableKey])) {
+            DB_query("DELETE FROM {$_TABLES[$tableKey]}");
+        }
+    }
+
+    return true;
+}
+
 function MIGRATOR_escape($value)
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
