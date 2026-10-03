@@ -5,12 +5,14 @@ class MigratorLegacyGeeklogAdapter
     protected $jobId;
     protected $tableMap;
     protected $dryRun;
+    protected $legacyTopicAssignmentStats;
 
     public function __construct($jobId, array $tableMap, $dryRun = true)
     {
         $this->jobId = (int) $jobId;
         $this->tableMap = $tableMap;
         $this->dryRun = (bool) $dryRun;
+        $this->legacyTopicAssignmentStats = $this->stats();
     }
 
     public function run(array $entities)
@@ -39,7 +41,13 @@ class MigratorLegacyGeeklogAdapter
             $result['entities'][$entity] = $this->{$method}();
         }
 
-        $result['entities']['topic_assignments'] = $this->migrateTopicAssignments();
+        $topicAssignmentStats = $this->migrateTopicAssignments();
+        foreach ($this->legacyTopicAssignmentStats as $key => $value) {
+            if (isset($topicAssignmentStats[$key])) {
+                $topicAssignmentStats[$key] += (int) $value;
+            }
+        }
+        $result['entities']['topic_assignments'] = $topicAssignmentStats;
 
         return $result;
     }
@@ -245,6 +253,7 @@ class MigratorLegacyGeeklogAdapter
         global $_TABLES;
 
         if (!isset($_TABLES['topic_assignments'])) {
+            ++$this->legacyTopicAssignmentStats['skipped'];
             return;
         }
 
@@ -259,14 +268,21 @@ class MigratorLegacyGeeklogAdapter
             return;
         }
 
-        if ($this->dryRun) {
-            return;
-        }
-
         $tidEsc = DB_escapeString($tid);
         $sidEsc = DB_escapeString($sid);
 
+        if ($this->dryRun) {
+            $sourceTopics = $this->sourceTable('topics');
+            if ($sourceTopics !== '' && $this->rowExists($sourceTopics, 'tid', $tid)) {
+                ++$this->legacyTopicAssignmentStats['would_import'];
+            } else {
+                ++$this->legacyTopicAssignmentStats['skipped'];
+            }
+            return;
+        }
+
         if (DB_count($_TABLES['topics'], 'tid', $tidEsc) === 0) {
+            ++$this->legacyTopicAssignmentStats['skipped'];
             $this->log('warning', 'story', $sid, 'Topic assignment skipped because topic does not exist: ' . $tid);
             return;
         }
@@ -276,11 +292,15 @@ class MigratorLegacyGeeklogAdapter
         $check = DB_query($sql);
         $existing = DB_fetchArray($check);
 
-        if ((int) $existing['total'] === 0) {
-            DB_query("INSERT INTO {$_TABLES['topic_assignments']}
-                (tid, type, subtype, id, inherit, tdefault)
-                VALUES ('{$tidEsc}', 'article', '', '{$sidEsc}', 1, 1)");
+        if ((int) $existing['total'] > 0) {
+            ++$this->legacyTopicAssignmentStats['preserved'];
+            return;
         }
+
+        DB_query("INSERT INTO {$_TABLES['topic_assignments']}
+            (tid, type, subtype, id, inherit, tdefault)
+            VALUES ('{$tidEsc}', 'article', '', '{$sidEsc}', 1, 1)");
+        ++$this->legacyTopicAssignmentStats['imported'];
     }
 
     private function migrateComments()
