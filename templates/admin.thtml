@@ -33,6 +33,7 @@
     </section>
 
     <section class="migrator-section migrator-danger">
+        {reset_form}
         {purge_form}
     </section>
 </div>
