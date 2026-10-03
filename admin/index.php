@@ -11,6 +11,7 @@ if (!SEC_hasRights('migrator.admin')) {
 }
 
 require_once $_CONF['path'] . 'plugins/migrator/classes/SqlDumpImporter.php';
+require_once $_CONF['path'] . 'plugins/migrator/classes/DumpUpload.php';
 require_once $_CONF['path'] . 'plugins/migrator/classes/SourceDetector.php';
 require_once $_CONF['path'] . 'plugins/migrator/classes/MigrationAnalyzer.php';
 require_once $_CONF['path'] . 'plugins/migrator/adapters/LegacyGeeklogAdapter.php';
@@ -533,36 +534,29 @@ if ($requestMethod === 'POST') {
             $message = MIGRATOR_adminMessage($LANG_MIGRATOR['upload_failed'], 'error');
         } else {
             $upload = $_FILES['sql_dump'];
-            $error = isset($upload['error']) ? (int) $upload['error'] : UPLOAD_ERR_NO_FILE;
-            $name = isset($upload['name']) ? basename($upload['name']) : '';
 
-            if ($error !== UPLOAD_ERR_OK) {
-                $message = MIGRATOR_adminMessage($LANG_MIGRATOR['upload_failed'], 'error');
-            } elseif (strtolower(pathinfo($name, PATHINFO_EXTENSION)) !== 'sql') {
-                $message = MIGRATOR_adminMessage($LANG_MIGRATOR['invalid_file'], 'error');
-            } else {
-                $storedName = date('Ymd-His') . '-' . bin2hex(random_bytes(6)) . '.sql';
-                $destination = MIGRATOR_dataDir() . $storedName;
+            try {
+                $normalized = MigratorDumpUpload::normalize($upload, MIGRATOR_dataDir());
 
-                if (!move_uploaded_file($upload['tmp_name'], $destination)) {
-                    $message = MIGRATOR_adminMessage($LANG_MIGRATOR['upload_failed'], 'error');
-                } else {
-                    try {
-                        $importer = new MigratorSqlDumpImporter();
-                        $result = $importer->import($destination);
-                        $detected = MigratorSourceDetector::detect($result['source_tables'], $result['sample']);
-                        $entities = MigratorMigrationAnalyzer::analyse($sourceCms, $result['table_map']);
+                $importer = new MigratorSqlDumpImporter();
+                $result = $importer->import($normalized['sql_path']);
+                $detected = MigratorSourceDetector::detect($result['source_tables'], $result['sample']);
+                $entities = MigratorMigrationAnalyzer::analyse($sourceCms, $result['table_map']);
 
-                        if (!MIGRATOR_recordJob($storedName, $result, $detected, $sourceCms, $entities)) {
-                            throw new RuntimeException($LANG_MIGRATOR['database_error']);
-                        }
-
-                        $message = MIGRATOR_adminMessage($LANG_MIGRATOR['stage_success']);
-                    } catch (Exception $e) {
-                        COM_errorLog('Migrator staging failed: ' . $e->getMessage());
-                        $message = MIGRATOR_adminMessage($LANG_MIGRATOR['stage_failed'] . ' ' . $e->getMessage(), 'error');
-                    }
+                if (!MIGRATOR_recordJob($normalized['stored_name'], $result, $detected, $sourceCms, $entities)) {
+                    throw new RuntimeException($LANG_MIGRATOR['database_error']);
                 }
+
+                $message = MIGRATOR_adminMessage(
+                    $LANG_MIGRATOR['stage_success'] . ' '
+                    . sprintf($LANG_MIGRATOR['normalized_format'], strtoupper($normalized['format']))
+                );
+            } catch (Exception $e) {
+                COM_errorLog('Migrator staging failed: ' . $e->getMessage());
+                $message = MIGRATOR_adminMessage(
+                    $LANG_MIGRATOR['stage_failed'] . ' ' . $e->getMessage(),
+                    'error'
+                );
             }
         }
     } elseif ($mode === 'dryrun') {
@@ -639,7 +633,8 @@ $uploadForm .= '<option value="glfusion">' . MIGRATOR_escape($LANG_MIGRATOR['glf
 $uploadForm .= '<option value="wordpress">' . MIGRATOR_escape($LANG_MIGRATOR['wordpress']) . '</option>';
 $uploadForm .= '</select></p>';
 $uploadForm .= '<p><label for="sql_dump"><strong>' . MIGRATOR_escape($LANG_MIGRATOR['sql_file']) . '</strong></label><br>';
-$uploadForm .= '<input type="file" name="sql_dump" id="sql_dump" accept=".sql,text/plain" required></p>';
+$uploadForm .= '<input type="file" name="sql_dump" id="sql_dump" accept=".sql,.sql.gz,.gz,.zip,application/sql,text/plain,application/gzip,application/zip" required></p>';
+$uploadForm .= '<p>' . MIGRATOR_escape($LANG_MIGRATOR['accepted_formats']) . '</p>';
 $uploadForm .= '<p><button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['import_stage']) . '</button></p>';
 $uploadForm .= '</form>';
 
