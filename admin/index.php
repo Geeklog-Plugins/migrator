@@ -657,6 +657,15 @@ if ($requestMethod === 'POST') {
     }
 }
 
+/*
+ * Any POST may have changed destination content or Migrator job state.
+ * Recompute both values before rendering the page so the status cards,
+ * workflow lock and available actions always reflect the database as it is
+ * now, not as it was at the start of the request.
+ */
+$destination = MIGRATOR_destinationStatus();
+$siteLocked = !$destination['fresh'] && !MIGRATOR_hasCompletedMigration();
+
 $destinationMessage = '<p class="' . ($destination['fresh'] ? 'migrator-ok' : 'migrator-warning') . '">'
     . '<span class="migrator-status">'
     . MIGRATOR_escape($destination['fresh'] ? $LANG_MIGRATOR['destination_ready'] : $LANG_MIGRATOR['destination_blocked'])
