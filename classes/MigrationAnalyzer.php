@@ -24,11 +24,16 @@ class MigratorMigrationAnalyzer
                 }
             }
 
+            $requiredPlugin = isset($definition['plugin']) ? $definition['plugin'] : '';
+            $pluginActive = $requiredPlugin === '' ? true : MIGRATOR_isPluginActive($requiredPlugin);
+
             $entities[$entity] = array(
                 'label' => $definition['label'],
                 'table' => $match,
                 'count' => $count,
-                'status' => $definition['status']
+                'status' => $definition['status'],
+                'required_plugin' => $requiredPlugin,
+                'plugin_active' => $pluginActive
             );
         }
 
@@ -45,10 +50,17 @@ class MigratorMigrationAnalyzer
                     'status' => 'supported'
                 ),
                 'posts' => array(
-                    'label' => 'Posts and pages',
+                    'label' => 'Posts',
                     'suffixes' => array('posts'),
                     'status' => 'supported',
-                    'where' => "post_type IN ('post','page') AND post_status IN ('publish','draft','private','pending')"
+                    'where' => "post_type = 'post' AND post_status IN ('publish','draft','private','pending')"
+                ),
+                'pages' => array(
+                    'label' => 'Pages',
+                    'suffixes' => array('posts'),
+                    'status' => 'supported',
+                    'plugin' => 'staticpages',
+                    'where' => "post_type = 'page' AND post_status IN ('publish','draft','private','pending')"
                 ),
                 'comments' => array(
                     'label' => 'Approved comments',
@@ -76,7 +88,12 @@ class MigratorMigrationAnalyzer
             'topics' => array('label' => 'Topics', 'suffixes' => array('topics'), 'status' => 'supported'),
             'stories' => array('label' => 'Stories', 'suffixes' => array('stories'), 'status' => 'supported'),
             'comments' => array('label' => 'Comments', 'suffixes' => array('comments'), 'status' => 'supported'),
-            'staticpages' => array('label' => 'Static Pages', 'suffixes' => array('staticpage'), 'status' => 'supported'),
+            'staticpages' => array(
+                'label' => 'Static Pages',
+                'suffixes' => array('staticpage'),
+                'status' => 'supported',
+                'plugin' => 'staticpages'
+            ),
             'links' => array('label' => 'Links', 'suffixes' => array('links'), 'status' => 'planned'),
             'polls' => array('label' => 'Polls', 'suffixes' => array('pollquestions', 'pollquestions'), 'status' => 'planned'),
             'calendar' => array('label' => 'Calendar events', 'suffixes' => array('events'), 'status' => 'planned')
@@ -86,17 +103,20 @@ class MigratorMigrationAnalyzer
             $definitions['forum'] = array(
                 'label' => 'Forum topics',
                 'suffixes' => array('ff_topic'),
-                'status' => 'supported'
+                'status' => 'supported',
+                'plugin' => 'forum'
             );
             $definitions['mediagallery_albums'] = array(
                 'label' => 'MediaGallery albums',
                 'suffixes' => array('mg_albums'),
-                'status' => 'supported'
+                'status' => 'supported',
+                'plugin' => 'mediagallery'
             );
             $definitions['mediagallery_media'] = array(
                 'label' => 'MediaGallery media',
                 'suffixes' => array('mg_media'),
-                'status' => 'supported'
+                'status' => 'supported',
+                'plugin' => 'mediagallery'
             );
         }
 
