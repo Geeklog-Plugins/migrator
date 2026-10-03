@@ -13,6 +13,7 @@ function DB_query($sql, $ignoreErrors = 0)
 
 require_once __DIR__ . '/../classes/SqlDumpImporter.php';
 require_once __DIR__ . '/../classes/SourceDetector.php';
+require_once __DIR__ . '/../classes/DumpUpload.php';
 
 function assertSameValue($expected, $actual, $message)
 {
@@ -126,3 +127,60 @@ foreach ($fixtures as $fixture => $expectedCms) {
 
 echo "Migrator fixture smoke tests passed.\n";
 
+
+
+assertSameValue('sql', MigratorDumpUpload::detectFormat('dump.sql'), 'SQL format detection failed.');
+assertSameValue('gz', MigratorDumpUpload::detectFormat('dump.sql.gz'), 'Gzip format detection failed.');
+assertSameValue('zip', MigratorDumpUpload::detectFormat('dump.zip'), 'ZIP format detection failed.');
+assertSameValue('', MigratorDumpUpload::detectFormat('dump.tar.gz'), 'Unsupported archive format must be rejected.');
+
+$fixtureSql = __DIR__ . '/fixtures/geeklog_legacy_test.sql';
+$fixtureContent = file_get_contents($fixtureSql);
+assertTrueValue($fixtureContent !== false && $fixtureContent !== '', 'Fixture content unavailable.');
+
+if (function_exists('gzencode') && function_exists('gzopen')) {
+    $gzFile = tempnam(sys_get_temp_dir(), 'migrator-gz-') . '.sql.gz';
+    file_put_contents($gzFile, gzencode($fixtureContent));
+
+    $ref = new ReflectionClass('MigratorDumpUpload');
+    $method = $ref->getMethod('extractGzip');
+    $method->setAccessible(true);
+
+    $gzOut = tempnam(sys_get_temp_dir(), 'migrator-gz-out-') . '.sql';
+    $method->invoke(null, $gzFile, $gzOut);
+
+    assertSameValue(
+        sha1($fixtureContent),
+        sha1(file_get_contents($gzOut)),
+        'Gzip extraction must preserve SQL content.'
+    );
+
+    @unlink($gzFile);
+    @unlink($gzOut);
+}
+
+if (class_exists('ZipArchive')) {
+    $zipFile = tempnam(sys_get_temp_dir(), 'migrator-zip-') . '.zip';
+    $zip = new ZipArchive();
+    assertTrueValue($zip->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true, 'ZIP test archive could not be created.');
+    $zip->addFromString('nested/geeklog.sql', $fixtureContent);
+    $zip->close();
+
+    $ref = new ReflectionClass('MigratorDumpUpload');
+    $method = $ref->getMethod('extractZip');
+    $method->setAccessible(true);
+
+    $zipOut = tempnam(sys_get_temp_dir(), 'migrator-zip-out-') . '.sql';
+    $method->invoke(null, $zipFile, $zipOut);
+
+    assertSameValue(
+        sha1($fixtureContent),
+        sha1(file_get_contents($zipOut)),
+        'ZIP extraction must preserve SQL content.'
+    );
+
+    @unlink($zipFile);
+    @unlink($zipOut);
+}
+
+echo "Migrator compressed upload smoke tests passed.\n";
