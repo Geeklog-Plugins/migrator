@@ -652,7 +652,7 @@ if ($requestMethod === 'POST') {
     }
 }
 
-$destinationMessage = '<p class="' . ($destination['fresh'] ? 'migrator-ok' : 'migrator-warning') . '">''
+$destinationMessage = '<p class="' . ($destination['fresh'] ? 'migrator-ok' : 'migrator-warning') . '">';
     . '<span class="migrator-status">'
     . MIGRATOR_escape($destination['fresh'] ? $LANG_MIGRATOR['destination_ready'] : $LANG_MIGRATOR['destination_blocked'])
     . '</span> '
