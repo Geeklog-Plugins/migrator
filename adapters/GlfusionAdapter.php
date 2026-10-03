@@ -8,6 +8,7 @@ require_once __DIR__ . '/LegacyGeeklogAdapter.php';
  */
 class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
 {
+    private $forumAttachmentManifest = array();
     public function run(array $entities)
     {
         global $_TABLES;
@@ -63,6 +64,12 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
         if (!empty($result['plugins']['forum_attachments']['warnings'])) {
             foreach ($result['plugins']['forum_attachments']['warnings'] as $warning) {
                 $result['warnings'][] = $warning;
+            }
+        }
+
+        if (!empty($this->forumAttachmentManifest)) {
+            foreach ($this->forumAttachmentManifest as $manifestItem) {
+                $result['media_manifest'][] = $manifestItem;
             }
         }
 
@@ -246,6 +253,21 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             }
 
             if ($this->dryRun) {
+                $targetRelative = 'mediagallery/mediaobjects/orig/'
+                    . $mediaFilename[0] . '/'
+                    . $mediaFilename . '.' . $extension;
+
+                $this->forumAttachmentManifest[] = array(
+                    'type' => $repositoryId > 0
+                        ? 'Forum attachment via FileMgmt'
+                        : 'Forum attachment',
+                    'source' => 'public_html/' . $resolved['source_relative'],
+                    'target' => 'public_html/' . $targetRelative,
+                    'note' => 'Original name: ' . $resolved['original_name']
+                        . '; Forum post #' . $topicId
+                        . '; MediaGallery ID: ' . $mediaId
+                );
+
                 ++$stats['would_import'];
                 continue;
             }
@@ -336,6 +358,17 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             $targetRelative = 'mediagallery/mediaobjects/orig/'
                 . $mediaFilename[0] . '/'
                 . $mediaFilename . '.' . $extension;
+
+            $this->forumAttachmentManifest[] = array(
+                'type' => $repositoryId > 0
+                    ? 'Forum attachment via FileMgmt'
+                    : 'Forum attachment',
+                'source' => 'public_html/' . $resolved['source_relative'],
+                'target' => 'public_html/' . $targetRelative,
+                'note' => 'Original name: ' . $resolved['original_name']
+                    . '; Forum post #' . $topicId
+                    . '; MediaGallery ID: ' . $mediaId
+            );
 
             $this->log(
                 'info',
