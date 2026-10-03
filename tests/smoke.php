@@ -92,3 +92,37 @@ $unknown = MigratorSourceDetector::detect(array('random_table'));
 assertSameValue('unknown', $unknown['cms'], 'Unknown schemas must remain unknown.');
 
 echo "Migrator smoke tests passed.\n";
+
+$fixtures = array(
+    'geeklog_legacy_test.sql' => 'legacy_geeklog',
+    'glfusion_test.sql' => 'glfusion',
+    'wordpress_test.sql' => 'wordpress'
+);
+
+foreach ($fixtures as $fixture => $expectedCms) {
+    $queries = array();
+    $file = __DIR__ . '/fixtures/' . $fixture;
+
+    assertTrueValue(is_file($file), 'Fixture file missing: ' . $fixture);
+
+    $fixtureImporter = new MigratorSqlDumpImporter();
+    $fixtureResult = $fixtureImporter->import($file);
+    $fixtureDetected = MigratorSourceDetector::detect(
+        $fixtureResult['source_tables'],
+        $fixtureResult['sample']
+    );
+
+    assertSameValue(
+        $expectedCms,
+        $fixtureDetected['cms'],
+        'Fixture CMS detection failed for ' . $fixture
+    );
+
+    assertTrueValue(
+        count($fixtureResult['source_tables']) > 0,
+        'Fixture did not stage any source tables: ' . $fixture
+    );
+}
+
+echo "Migrator fixture smoke tests passed.\n";
+
