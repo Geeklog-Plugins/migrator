@@ -488,17 +488,7 @@ function MIGRATOR_renderResetForm()
         return '';
     }
 
-    $lockMessage = '';
-if ($siteLocked) {
-    $lockMessage = '<div class="migrator-lock">'
-        . '<h2>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_title']) . '</h2>'
-        . '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_intro']) . '</strong></p>'
-        . '<p>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_explain']) . '</p>'
-        . '<p>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_action_hint']) . '</p>'
-        . '</div>';
-}
-
-$token = SEC_createToken();
+    $token = SEC_createToken();
     $phrase = 'RESET MIGRATOR';
 
     $html = '<div class="migrator-reset-box">';
@@ -652,7 +642,7 @@ if ($requestMethod === 'POST') {
     }
 }
 
-$destinationMessage = '<p class="' . ($destination['fresh'] ? 'migrator-ok' : 'migrator-warning') . '">';
+$destinationMessage = '<p class="' . ($destination['fresh'] ? 'migrator-ok' : 'migrator-warning') . '">'
     . '<span class="migrator-status">'
     . MIGRATOR_escape($destination['fresh'] ? $LANG_MIGRATOR['destination_ready'] : $LANG_MIGRATOR['destination_blocked'])
     . '</span> '
@@ -667,6 +657,16 @@ foreach (array('users', 'stories', 'topics', 'comments', 'staticpages') as $coun
         . '</div></div>';
 }
 $destinationMessage .= '</div>';
+
+$lockMessage = '';
+if ($siteLocked) {
+    $lockMessage = '<div class="migrator-lock">'
+        . '<h2>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_title']) . '</h2>'
+        . '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_intro']) . '</strong></p>'
+        . '<p>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_explain']) . '</p>'
+        . '<p>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_action_hint']) . '</p>'
+        . '</div>';
+}
 
 $token = SEC_createToken();
 
