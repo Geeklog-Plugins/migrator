@@ -33,6 +33,48 @@ function plugin_getadminoption_migrator()
     );
 }
 
+
+function plugin_getheadercode_migrator()
+{
+    global $_CONF, $_TABLES;
+
+    $script = isset($_SERVER['PHP_SELF']) ? str_replace('\\', '/', $_SERVER['PHP_SELF']) : '';
+    if (strpos($script, '/admin/plugins/migrator/') === false) {
+        return '';
+    }
+
+    $version = '1.0.0';
+    if (isset($_TABLES['plugins'])) {
+        $dbVersion = DB_getItem($_TABLES['plugins'], 'pi_version', "pi_name = 'migrator'");
+        if (!empty($dbVersion)) {
+            $version = (string) $dbVersion;
+        }
+    }
+
+    $cssPath = rtrim($_CONF['path_html'], "/\\")
+        . DIRECTORY_SEPARATOR . 'admin'
+        . DIRECTORY_SEPARATOR . 'plugins'
+        . DIRECTORY_SEPARATOR . 'migrator'
+        . DIRECTORY_SEPARATOR . 'css'
+        . DIRECTORY_SEPARATOR . 'admin.css';
+
+    $assetVersion = $version;
+    if (is_file($cssPath)) {
+        $mtime = @filemtime($cssPath);
+        if ($mtime !== false) {
+            $assetVersion .= '-' . (int) $mtime;
+        }
+    }
+
+    $url = rtrim($_CONF['site_admin_url'], '/')
+        . '/plugins/migrator/css/admin.css?v='
+        . rawurlencode($assetVersion);
+
+    return '<link rel="stylesheet" href="'
+        . htmlspecialchars($url, ENT_QUOTES, 'UTF-8')
+        . '" media="all" type="text/css">' . LB;
+}
+
 function plugin_geticon_migrator()
 {
     return '';
