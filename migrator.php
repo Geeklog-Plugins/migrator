@@ -106,7 +106,7 @@ function MIGRATOR_prepareFreshDestination($sourceCms, array $tableMap)
             }
         }
 
-        if ($hasForum) {
+        if ($hasForum && MIGRATOR_isPluginActive('forum')) {
             foreach (array(
                 'forum_log',
                 'forum_moderators',
@@ -131,7 +131,7 @@ function MIGRATOR_prepareFreshDestination($sourceCms, array $tableMap)
             }
         }
 
-        if ($hasMediaGallery) {
+        if ($hasMediaGallery && MIGRATOR_isPluginActive('mediagallery')) {
             foreach (array(
                 'mg_media_albums',
                 'mg_media_album_queue',
