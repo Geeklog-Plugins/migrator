@@ -126,8 +126,28 @@ CREATE TABLE gf_ff_userprefs (
 CREATE TABLE gf_ff_attachments (
   id int(11) NOT NULL,
   topic_id int(11) NOT NULL DEFAULT 0,
+  repository_id int(11) DEFAULT NULL,
   filename varchar(255) NOT NULL DEFAULT '',
+  tempfile tinyint(1) NOT NULL DEFAULT 0,
+  show_inline tinyint(4) NOT NULL DEFAULT 0,
   PRIMARY KEY (id)
+);
+
+CREATE TABLE gf_filemgmt_filedetail (
+  lid int(11) unsigned NOT NULL,
+  cid int(5) unsigned NOT NULL DEFAULT 0,
+  title varchar(100) NOT NULL DEFAULT '',
+  url varchar(250) NOT NULL DEFAULT '',
+  size int(8) NOT NULL DEFAULT 0,
+  submitter int(11) NOT NULL DEFAULT 0,
+  status tinyint(2) NOT NULL DEFAULT 1,
+  date int(10) NOT NULL DEFAULT 0,
+  PRIMARY KEY (lid)
+);
+
+CREATE TABLE gf_filemgmt_filedesc (
+  lid int(11) unsigned NOT NULL DEFAULT 0,
+  description text NOT NULL
 );
 
 CREATE TABLE gf_mg_albums (
@@ -198,7 +218,14 @@ INSERT INTO gf_ff_userprefs VALUES
 (3,20,20);
 
 INSERT INTO gf_ff_attachments VALUES
-(1,100,'legacy-attachment.pdf');
+(1,100,NULL,'forum001.pdf:legacy-attachment.pdf',0,0),
+(2,101,77,'filemgmt-guide.pdf:filemgmt-guide.pdf',0,0);
+
+INSERT INTO gf_filemgmt_filedetail VALUES
+(77,1,'FileMgmt Guide','filemgmt-guide.pdf',4242,3,1,1530529200);
+
+INSERT INTO gf_filemgmt_filedesc VALUES
+(77,'Attachment stored through glFusion FileMgmt.');
 
 INSERT INTO gf_mg_albums VALUES
 (1,'Test Album','Synthetic MediaGallery album.',0,3,1,3,2,2,2,25);
