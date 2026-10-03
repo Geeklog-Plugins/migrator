@@ -289,9 +289,24 @@ function MIGRATOR_renderMigrationResult(array $migration, $title)
     $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['skipped']) . '</th>';
     $html .= '</tr></thead><tbody>';
 
+    $entityLabels = array(
+        'users' => 'Users',
+        'topics' => 'Topics',
+        'stories' => 'Stories',
+        'comments' => 'Comments',
+        'staticpages' => 'Static Pages',
+        'topic_assignments' => 'Topic assignments',
+        'categories' => 'Categories',
+        'posts' => 'Posts and pages'
+    );
+
     foreach ($migration['entities'] as $entity => $stats) {
+        $label = isset($entityLabels[$entity])
+            ? $entityLabels[$entity]
+            : ucwords(str_replace('_', ' ', $entity));
+
         $html .= '<tr>';
-        $html .= '<td>' . MIGRATOR_escape($entity) . '</td>';
+        $html .= '<td>' . MIGRATOR_escape($label) . '</td>';
         $html .= '<td>' . (int) (isset($stats['would_import']) ? $stats['would_import'] : 0) . '</td>';
         $html .= '<td>' . (int) (isset($stats['imported']) ? $stats['imported'] : 0) . '</td>';
         $html .= '<td>' . (int) (isset($stats['preserved']) ? $stats['preserved'] : 0) . '</td>';
