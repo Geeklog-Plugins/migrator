@@ -233,7 +233,10 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             }
 
             $mimeType = $this->mimeTypeForExtension($extension);
-            $mediaType = $this->mediaTypeForExtension($extension);
+            // Forum attachments are preserved as downloadable generic files.
+            // Physical files are copied only after the database migration, so
+            // image/video derivatives do not exist yet.
+            $mediaType = 4;
             $post = $this->sourceForumPost($topicId);
             $uid = is_array($post) && isset($post['uid']) ? (int) $post['uid'] : 2;
             if ($uid <= 0) {
@@ -680,22 +683,6 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             : 'application/octet-stream';
     }
 
-    private function mediaTypeForExtension($extension)
-    {
-        if (in_array($extension, array('jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'), true)) {
-            return 0;
-        }
-
-        if (in_array($extension, array('mp4', 'mov', 'avi', 'flv', 'wmv', 'mpeg', 'mpg'), true)) {
-            return 1;
-        }
-
-        if (in_array($extension, array('mp3', 'wav', 'ogg', 'wma'), true)) {
-            return 2;
-        }
-
-        return 4;
-    }
 
     private function migrateMediaGallery()
     {
