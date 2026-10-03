@@ -106,6 +106,12 @@ class MigratorMigrationAnalyzer
                 'status' => 'supported',
                 'plugin' => 'forum'
             );
+            $definitions['forum_attachments'] = array(
+                'label' => 'Forum attachments → MediaGallery',
+                'suffixes' => array('ff_attachments'),
+                'status' => 'supported',
+                'plugin' => 'mediagallery'
+            );
             $definitions['mediagallery_albums'] = array(
                 'label' => 'MediaGallery albums',
                 'suffixes' => array('mg_albums'),
