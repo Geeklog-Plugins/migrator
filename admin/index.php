@@ -353,6 +353,53 @@ function MIGRATOR_renderMigrationResult(array $migration, $title)
     return $html;
 }
 
+
+function MIGRATOR_missingDependencies(array $job)
+{
+    $missing = array();
+    $report = isset($job['report']) ? json_decode($job['report'], true) : array();
+
+    if (!is_array($report) || empty($report['entities']) || !is_array($report['entities'])) {
+        return $missing;
+    }
+
+    foreach ($report['entities'] as $entity) {
+        $count = isset($entity['count']) ? (int) $entity['count'] : 0;
+        $plugin = isset($entity['required_plugin']) ? trim((string) $entity['required_plugin']) : '';
+
+        if ($count > 0 && $plugin !== '' && !MIGRATOR_isPluginActive($plugin)) {
+            $missing[$plugin] = true;
+        }
+    }
+
+    return array_keys($missing);
+}
+
+function MIGRATOR_renderDependencyWarning(array $missing)
+{
+    global $LANG_MIGRATOR;
+
+    if (empty($missing)) {
+        return '';
+    }
+
+    $html = '<div class="migrator-dependency-warning">';
+    $html .= '<h3>' . MIGRATOR_escape($LANG_MIGRATOR['missing_dependencies_title']) . '</h3>';
+    $html .= '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['missing_dependencies_intro']) . '</strong></p>';
+    $html .= '<ul>';
+
+    foreach ($missing as $plugin) {
+        $html .= '<li><code>' . MIGRATOR_escape($plugin) . '</code> — '
+            . MIGRATOR_escape($LANG_MIGRATOR['plugin_missing']) . '</li>';
+    }
+
+    $html .= '</ul>';
+    $html .= '<p>' . MIGRATOR_escape($LANG_MIGRATOR['missing_dependencies_action']) . '</p>';
+    $html .= '</div>';
+
+    return $html;
+}
+
 function MIGRATOR_renderMigrationActions()
 {
     global $_TABLES, $LANG_MIGRATOR;
@@ -368,10 +415,12 @@ function MIGRATOR_renderMigrationActions()
     }
 
     $jobId = (int) $job['job_id'];
+    $missingDependencies = MIGRATOR_missingDependencies($job);
     $token1 = SEC_createToken();
     $token2 = SEC_createToken();
 
-    $html = '<div class="migrator-actions">';
+    $html = MIGRATOR_renderDependencyWarning($missingDependencies);
+    $html .= '<div class="migrator-actions">';
     $html .= '<form method="post" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '">';
     $html .= '<input type="hidden" name="mode" value="dryrun">';
     $html .= '<input type="hidden" name="job_id" value="' . $jobId . '">';
@@ -379,13 +428,15 @@ function MIGRATOR_renderMigrationActions()
     $html .= '<button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['run_dry_run']) . '</button>';
     $html .= '</form>';
 
-    $html .= '<form method="post" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '" onsubmit="return confirm('
-        . htmlspecialchars(json_encode($LANG_MIGRATOR['migrate_confirm']), ENT_QUOTES, 'UTF-8') . ');">';
-    $html .= '<input type="hidden" name="mode" value="migrate">';
-    $html .= '<input type="hidden" name="job_id" value="' . $jobId . '">';
-    $html .= '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . MIGRATOR_escape($token2) . '">';
-    $html .= '<button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['run_migration']) . '</button>';
-    $html .= '</form>';
+    if (empty($missingDependencies)) {
+        $html .= '<form method="post" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '" onsubmit="return confirm('
+            . htmlspecialchars(json_encode($LANG_MIGRATOR['migrate_confirm']), ENT_QUOTES, 'UTF-8') . ');">';
+        $html .= '<input type="hidden" name="mode" value="migrate">';
+        $html .= '<input type="hidden" name="job_id" value="' . $jobId . '">';
+        $html .= '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . MIGRATOR_escape($token2) . '">';
+        $html .= '<button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['run_migration']) . '</button>';
+        $html .= '</form>';
+    }
     $html .= '</div>';
 
     $report = json_decode($job['report'], true);
@@ -526,8 +577,14 @@ if ($requestMethod === 'POST') {
     } elseif ($mode === 'migrate') {
         $destination = MIGRATOR_destinationStatus();
         $jobId = isset($_POST['job_id']) ? (int) $_POST['job_id'] : 0;
+        $job = MIGRATOR_loadJob($jobId);
+        $missingDependencies = is_array($job) ? MIGRATOR_missingDependencies($job) : array();
 
-        if (!$destination['fresh']) {
+        if (!is_array($job)) {
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['migration_failed'] . ' Migration job not found.', 'error');
+        } elseif (!empty($missingDependencies)) {
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['migration_blocked_dependencies'], 'error');
+        } elseif (!$destination['fresh']) {
             $message = MIGRATOR_adminMessage($LANG_MIGRATOR['destination_not_fresh'], 'error');
         } else {
             try {
