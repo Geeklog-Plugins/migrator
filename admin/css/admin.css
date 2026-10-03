@@ -1,0 +1,37 @@
+.migrator-admin{max-width:1100px}
+.migrator-admin h1{margin-bottom:.35rem}
+.migrator-lead{margin-top:0;color:inherit;opacity:.82}
+.migrator-card{border:1px solid rgba(127,127,127,.25);border-radius:.55rem;padding:1rem 1.1rem;margin:1rem 0;background:rgba(127,127,127,.035)}
+.migrator-card h2,.migrator-card h3{margin-top:0}
+.migrator-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.75rem;margin:.8rem 0}
+.migrator-metric{border:1px solid rgba(127,127,127,.22);border-radius:.45rem;padding:.7rem .8rem}
+.migrator-metric__label{font-size:.85em;opacity:.72}
+.migrator-metric__value{font-size:1.15em;font-weight:700;margin-top:.15rem}
+.migrator-status{display:inline-block;padding:.18rem .5rem;border:1px solid currentColor;border-radius:999px;font-size:.85em;font-weight:700}
+.migrator-muted{opacity:.72}
+.migrator-table-wrap{overflow-x:auto}
+.migrator-table-wrap table{width:100%;border-collapse:collapse}
+.migrator-table-wrap th,.migrator-table-wrap td{padding:.55rem .65rem;text-align:left;vertical-align:top;border-bottom:1px solid rgba(127,127,127,.2)}
+.migrator-table-wrap th{font-weight:700}
+.migrator-actions{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin:1rem 0}
+.migrator-actions form{margin:0}
+.migrator-actions button,.migrator-admin button{min-height:2.5rem;padding:.55rem .9rem}
+.migrator-ok{font-weight:700}
+.migrator-warning{border-left:4px solid currentColor;padding:.65rem .8rem;background:rgba(127,127,127,.06);margin:.8rem 0}
+.migrator-lock{border:2px solid rgba(180,40,40,.6);border-radius:.55rem;padding:1rem 1.1rem;margin:1rem 0;background:rgba(180,40,40,.06)}
+.migrator-lock h2{margin-top:0}
+.migrator-danger{border:1px solid rgba(180,40,40,.45);border-radius:.55rem;padding:1rem 1.1rem;margin-top:1.5rem}
+.migrator-danger h2{margin-top:0}
+.migrator-upload-grid{display:grid;grid-template-columns:minmax(180px,240px) minmax(260px,1fr);gap:1rem;align-items:end}
+.migrator-analysis{display:grid;grid-template-columns:max-content 1fr;gap:.3rem .9rem;margin:.6rem 0 1rem}
+.migrator-analysis dt{font-weight:700}
+.migrator-analysis dd{margin:0}
+.migrator-help summary{cursor:pointer;font-weight:700}
+.migrator-help ol{margin-bottom:0}
+@media(max-width:700px){
+  .migrator-upload-grid{grid-template-columns:1fr}
+  .migrator-actions{align-items:stretch;flex-direction:column}
+  .migrator-actions form,.migrator-actions button{width:100%}
+  .migrator-analysis{grid-template-columns:1fr}
+  .migrator-analysis dd{margin-bottom:.35rem}
+}
