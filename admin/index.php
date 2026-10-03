@@ -298,7 +298,8 @@ function MIGRATOR_renderMigrationResult(array $migration, $title)
         'staticpages' => 'Static Pages',
         'topic_assignments' => 'Topic assignments',
         'categories' => 'Categories',
-        'posts' => 'Posts and pages'
+        'posts' => 'Posts and pages',
+        'forum_attachments' => 'Forum attachments → MediaGallery'
     );
 
     foreach ($migration['entities'] as $entity => $stats) {
@@ -321,8 +322,17 @@ function MIGRATOR_renderMigrationResult(array $migration, $title)
     if (!empty($migration['plugins']) && is_array($migration['plugins'])) {
         $html .= '<h4>' . MIGRATOR_escape($LANG_MIGRATOR['plugin_content']) . '</h4>';
 
+        $pluginLabels = array(
+            'forum' => 'Forum',
+            'mediagallery' => 'MediaGallery',
+            'forum_attachments' => 'Forum attachments → MediaGallery'
+        );
+
         foreach ($migration['plugins'] as $plugin => $pluginReport) {
-            $html .= '<h5>' . MIGRATOR_escape(ucfirst($plugin)) . '</h5>';
+            $pluginLabel = isset($pluginLabels[$plugin])
+                ? $pluginLabels[$plugin]
+                : ucwords(str_replace('_', ' ', $plugin));
+            $html .= '<h5>' . MIGRATOR_escape($pluginLabel) . '</h5>';
 
             if (empty($pluginReport['available'])) {
                 $html .= '<p>' . MIGRATOR_escape($LANG_MIGRATOR['source_not_detected']) . '</p>';
