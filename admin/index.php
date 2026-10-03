@@ -387,6 +387,48 @@ function MIGRATOR_renderMigrationActions()
     return $html;
 }
 
+
+function MIGRATOR_renderResetForm()
+{
+    global $LANG_MIGRATOR;
+
+    if (!MIGRATOR_hasCompletedMigration()) {
+        return '';
+    }
+
+    $token = SEC_createToken();
+    $phrase = 'RESET MIGRATOR';
+
+    $html = '<div class="migrator-reset-box">';
+    $html .= '<h2>' . MIGRATOR_escape($LANG_MIGRATOR['reset_title']) . '</h2>';
+    $html .= '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['reset_danger']) . '</strong></p>';
+    $html .= '<ul>';
+    $html .= '<li>' . MIGRATOR_escape($LANG_MIGRATOR['reset_deletes_content']) . '</li>';
+    $html .= '<li>' . MIGRATOR_escape($LANG_MIGRATOR['reset_deletes_users']) . '</li>';
+    $html .= '<li>' . MIGRATOR_escape($LANG_MIGRATOR['reset_deletes_plugins']) . '</li>';
+    $html .= '<li>' . MIGRATOR_escape($LANG_MIGRATOR['reset_media_warning']) . '</li>';
+    $html .= '</ul>';
+
+    $html .= '<form method="post" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '">';
+    $html .= '<input type="hidden" name="mode" value="reset">';
+    $html .= '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . MIGRATOR_escape($token) . '">';
+
+    $html .= '<p><label>';
+    $html .= '<input type="checkbox" name="confirm_understand" value="1" required> ';
+    $html .= MIGRATOR_escape($LANG_MIGRATOR['reset_checkbox']);
+    $html .= '</label></p>';
+
+    $html .= '<p>' . MIGRATOR_escape($LANG_MIGRATOR['reset_type_prompt']) . ' ';
+    $html .= '<code>' . MIGRATOR_escape($phrase) . '</code></p>';
+
+    $html .= '<p><input type="text" name="confirmation_text" value="" autocomplete="off" spellcheck="false" required></p>';
+    $html .= '<p><button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['reset_button']) . '</button></p>';
+    $html .= '</form>';
+    $html .= '</div>';
+
+    return $html;
+}
+
 function MIGRATOR_purgeData()
 {
     global $_TABLES;
@@ -484,6 +526,20 @@ if ($requestMethod === 'POST') {
                 $message = MIGRATOR_adminMessage($LANG_MIGRATOR['migration_failed'] . ' ' . $e->getMessage(), 'error');
             }
         }
+    } elseif ($mode === 'reset') {
+        $confirmed = isset($_POST['confirm_understand']) && $_POST['confirm_understand'] === '1';
+        $typed = isset($_POST['confirmation_text']) ? trim((string) $_POST['confirmation_text']) : '';
+
+        if (!$confirmed || !hash_equals('RESET MIGRATOR', $typed)) {
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['reset_confirmation_failed'], 'error');
+        } elseif (!MIGRATOR_hasCompletedMigration()) {
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['reset_unavailable'], 'error');
+        } elseif (!MIGRATOR_resetTestInstallation()) {
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['reset_failed'], 'error');
+        } else {
+            MIGRATOR_purgeData();
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['reset_complete']);
+        }
     } elseif ($mode === 'purge') {
         MIGRATOR_purgeData();
         $message = MIGRATOR_adminMessage($LANG_MIGRATOR['purged']);
@@ -546,6 +602,7 @@ $template->set_var(array(
     'analysis_title' => MIGRATOR_escape($LANG_MIGRATOR['analysis']),
     'analysis' => MIGRATOR_renderLatestAnalysis(),
     'migration_actions' => MIGRATOR_renderMigrationActions(),
+    'reset_form' => MIGRATOR_renderResetForm(),
     'purge_form' => $purgeForm
 ));
 
