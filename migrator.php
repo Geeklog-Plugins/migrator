@@ -159,6 +159,31 @@ function MIGRATOR_prepareFreshDestination($sourceCms, array $tableMap)
 }
 
 
+
+function MIGRATOR_isPluginActive($pluginName)
+{
+    global $_TABLES;
+
+    if (!isset($_TABLES['plugins'])) {
+        return false;
+    }
+
+    $plugin = DB_escapeString((string) $pluginName);
+    $result = DB_query(
+        "SELECT pi_enabled FROM {$_TABLES['plugins']}
+         WHERE pi_name = '{$plugin}' LIMIT 1",
+        1
+    );
+
+    if ($result === false || DB_numRows($result) === 0) {
+        return false;
+    }
+
+    $row = DB_fetchArray($result);
+
+    return isset($row['pi_enabled']) && (int) $row['pi_enabled'] === 1;
+}
+
 function MIGRATOR_hasCompletedMigration()
 {
     global $_TABLES;
@@ -190,7 +215,7 @@ function MIGRATOR_resetTestInstallation()
         DB_query("DELETE FROM {$_TABLES['stories']}");
     }
 
-    if (isset($_TABLES['staticpage'])) {
+    if (MIGRATOR_isPluginActive('staticpages') && isset($_TABLES['staticpage'])) {
         DB_query("DELETE FROM {$_TABLES['staticpage']}");
     }
 
@@ -218,41 +243,45 @@ function MIGRATOR_resetTestInstallation()
         DB_query("DELETE FROM {$_TABLES['users']} WHERE uid > 2");
     }
 
-    foreach (array(
-        'forum_log',
-        'forum_moderators',
-        'forum_userprefs',
-        'forum_banned_ip',
-        'forum_userinfo',
-        'forum_topic',
-        'forum_forums',
-        'forum_categories'
-    ) as $tableKey) {
-        if (isset($_TABLES[$tableKey])) {
-            DB_query("DELETE FROM {$_TABLES[$tableKey]}");
+    if (MIGRATOR_isPluginActive('forum')) {
+        foreach (array(
+            'forum_log',
+            'forum_moderators',
+            'forum_userprefs',
+            'forum_banned_ip',
+            'forum_userinfo',
+            'forum_topic',
+            'forum_forums',
+            'forum_categories'
+        ) as $tableKey) {
+            if (isset($_TABLES[$tableKey])) {
+                DB_query("DELETE FROM {$_TABLES[$tableKey]}");
+            }
         }
     }
 
-    foreach (array(
-        'mg_media_albums',
-        'mg_media_album_queue',
-        'mg_playback_options',
-        'mg_usage_tracking',
-        'mg_userprefs',
-        'mg_sessions',
-        'mg_session_items',
-        'mg_session_log',
-        'mg_sort',
-        'mg_rating',
-        'mg_mediaqueue',
-        'mg_media',
-        'mg_albums',
-        'mg_category',
-        'mg_watermarks',
-        'mg_exif_tags'
-    ) as $tableKey) {
-        if (isset($_TABLES[$tableKey])) {
-            DB_query("DELETE FROM {$_TABLES[$tableKey]}");
+    if (MIGRATOR_isPluginActive('mediagallery')) {
+        foreach (array(
+            'mg_media_albums',
+            'mg_media_album_queue',
+            'mg_playback_options',
+            'mg_usage_tracking',
+            'mg_userprefs',
+            'mg_sessions',
+            'mg_session_items',
+            'mg_session_log',
+            'mg_sort',
+            'mg_rating',
+            'mg_mediaqueue',
+            'mg_media',
+            'mg_albums',
+            'mg_category',
+            'mg_watermarks',
+            'mg_exif_tags'
+        ) as $tableKey) {
+            if (isset($_TABLES[$tableKey])) {
+                DB_query("DELETE FROM {$_TABLES[$tableKey]}");
+            }
         }
     }
 
