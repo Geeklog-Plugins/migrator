@@ -122,5 +122,5 @@ $LANG_MIGRATOR = array(
     'reset_confirmation_failed' => 'Reset cancelled: the checkbox and exact confirmation phrase are required.',
     'reset_unavailable' => 'Reset is unavailable because Migrator has not recorded a completed migration.',
     'reset_failed' => 'The test installation could not be reset.',
-    'reset_complete' => 'The migrated test data and Migrator staging data were removed. The installation is ready for another migration test.'
+    'reset_complete' => 'The migrated test data and Migrator staging data were removed. The destination is back to a clean Migrator test baseline and is ready for another migration.'
 );
