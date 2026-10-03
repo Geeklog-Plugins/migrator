@@ -36,7 +36,7 @@ Exercises:
 - core Geeklog-compatible content
 - Static Pages
 - Forum categories/forums/posts/preferences
-- unsupported Forum attachment reporting
+- Forum attachments converted to MediaGallery, including both local Forum storage and FileMgmt-backed storage
 - MediaGallery album/media/album relation
 - `opacity` -> `wm_opacity` conversion
 - media copy manifest
@@ -45,7 +45,7 @@ Destination dependencies before migration:
 
 - `staticpages` installed and active
 - `forum` installed and active
-- `mediagallery` installed and active
+- `mediagallery` installed and active (required for MediaGallery source data and Forum attachment conversion)
 
 Expected source highlights:
 
@@ -57,7 +57,7 @@ Expected source highlights:
 - 1 Forum category
 - 1 Forum
 - 2 Forum posts
-- 1 unsupported Forum attachment record
+- 2 Forum attachment records (one local Forum file and one FileMgmt-backed file)
 - 1 MediaGallery album
 - 1 MediaGallery media item
 
