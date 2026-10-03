@@ -331,6 +331,7 @@ class MigratorWordPressAdapter extends MigratorLegacyGeeklogAdapter
                 if ($this->insertAssoc($_TABLES['staticpage'], $data)) {
                     ++$stats['imported'];
                     $this->mapId('wordpress_page', $sourceId, $targetId, 'imported');
+                    $this->assignStaticPageToAllTopics($targetId);
                 } else {
                     ++$stats['skipped'];
                 }
@@ -378,6 +379,36 @@ class MigratorWordPressAdapter extends MigratorLegacyGeeklogAdapter
         }
 
         return $stats;
+    }
+
+
+    private function assignStaticPageToAllTopics($pageId)
+    {
+        global $_TABLES;
+
+        if ($this->dryRun || !isset($_TABLES['topic_assignments'])) {
+            return;
+        }
+
+        $id = DB_escapeString((string) $pageId);
+        $type = 'staticpages';
+        $tid = defined('TOPIC_ALL_OPTION') ? TOPIC_ALL_OPTION : 'all';
+
+        $result = DB_query(
+            "SELECT COUNT(*) AS total FROM {$_TABLES['topic_assignments']}
+             WHERE tid = '" . DB_escapeString($tid) . "'
+             AND type = '{$type}'
+             AND id = '{$id}'"
+        );
+        $row = DB_fetchArray($result);
+
+        if (!is_array($row) || (int) $row['total'] === 0) {
+            DB_query(
+                "INSERT INTO {$_TABLES['topic_assignments']}
+                 (tid, type, subtype, id, inherit, tdefault)
+                 VALUES ('" . DB_escapeString($tid) . "', '{$type}', '', '{$id}', 1, 1)"
+            );
+        }
     }
 
     private function migrateCategoryAssignments()
