@@ -488,7 +488,17 @@ function MIGRATOR_renderResetForm()
         return '';
     }
 
-    $token = SEC_createToken();
+    $lockMessage = '';
+if ($siteLocked) {
+    $lockMessage = '<div class="migrator-lock">'
+        . '<h2>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_title']) . '</h2>'
+        . '<p><strong>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_intro']) . '</strong></p>'
+        . '<p>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_explain']) . '</p>'
+        . '<p>' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_action_hint']) . '</p>'
+        . '</div>';
+}
+
+$token = SEC_createToken();
     $phrase = 'RESET MIGRATOR';
 
     $html = '<div class="migrator-reset-box">';
@@ -544,11 +554,16 @@ function MIGRATOR_purgeData()
 }
 
 $message = '';
+$destination = MIGRATOR_destinationStatus();
+$siteLocked = !$destination['fresh'] && !MIGRATOR_hasCompletedMigration();
+
 $requestMethod = isset($_SERVER['REQUEST_METHOD']) ? strtoupper($_SERVER['REQUEST_METHOD']) : 'GET';
 $mode = isset($_REQUEST['mode']) ? COM_applyFilter($_REQUEST['mode']) : '';
 
 if ($requestMethod === 'POST') {
-    if (!SEC_checkToken()) {
+    if ($siteLocked) {
+        $message = MIGRATOR_adminMessage($LANG_MIGRATOR['site_locked_action'], 'error');
+    } elseif (!SEC_checkToken()) {
         $message = MIGRATOR_adminMessage($LANG_MIGRATOR['security_error'], 'error');
     } elseif ($mode === 'stage') {
         $allowedCms = array('legacy_geeklog', 'glfusion', 'wordpress');
@@ -637,8 +652,7 @@ if ($requestMethod === 'POST') {
     }
 }
 
-$destination = MIGRATOR_destinationStatus();
-$destinationMessage = '<p class="' . ($destination['fresh'] ? 'migrator-ok' : 'migrator-warning') . '">'
+$destinationMessage = '<p class="' . ($destination['fresh'] ? 'migrator-ok' : 'migrator-warning') . '">''
     . '<span class="migrator-status">'
     . MIGRATOR_escape($destination['fresh'] ? $LANG_MIGRATOR['destination_ready'] : $LANG_MIGRATOR['destination_blocked'])
     . '</span> '
@@ -682,12 +696,27 @@ $purgeForm .= '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . MIGRATO
 $purgeForm .= '<button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['purge']) . '</button>';
 $purgeForm .= '</form>';
 
+if ($siteLocked) {
+    $uploadForm = '<p class="migrator-muted">' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_controls']) . '</p>';
+    $jobsTable = '<p class="migrator-muted">' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_no_jobs']) . '</p>';
+    $analysisHtml = '';
+    $migrationActions = '';
+    $resetForm = '';
+    $purgeForm = '';
+} else {
+    $jobsTable = MIGRATOR_renderJobs();
+    $analysisHtml = MIGRATOR_renderLatestAnalysis();
+    $migrationActions = MIGRATOR_renderMigrationActions();
+    $resetForm = MIGRATOR_renderResetForm();
+}
+
 $template = COM_newTemplate($_CONF['path'] . 'plugins/migrator/templates');
 $template->set_file('admin', 'admin.thtml');
 $template->set_var(array(
     'page_title' => MIGRATOR_escape($LANG_MIGRATOR['title']),
     'intro' => MIGRATOR_escape($LANG_MIGRATOR['intro']),
     'message' => $message,
+    'lock_message' => $lockMessage,
     'getting_started' => MIGRATOR_escape($LANG_MIGRATOR['getting_started']),
     'step_1' => MIGRATOR_escape($LANG_MIGRATOR['step_1']),
     'step_2' => MIGRATOR_escape($LANG_MIGRATOR['step_2']),
@@ -699,11 +728,11 @@ $template->set_var(array(
     'upload_title' => MIGRATOR_escape($LANG_MIGRATOR['upload']),
     'upload_form' => $uploadForm,
     'jobs_title' => MIGRATOR_escape($LANG_MIGRATOR['jobs']),
-    'jobs_table' => MIGRATOR_renderJobs(),
+    'jobs_table' => $jobsTable,
     'analysis_title' => MIGRATOR_escape($LANG_MIGRATOR['analysis']),
-    'analysis' => MIGRATOR_renderLatestAnalysis(),
-    'migration_actions' => MIGRATOR_renderMigrationActions(),
-    'reset_form' => MIGRATOR_renderResetForm(),
+    'analysis' => $analysisHtml,
+    'migration_actions' => $migrationActions,
+    'reset_form' => $resetForm,
     'purge_form' => $purgeForm
 ));
 
