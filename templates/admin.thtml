@@ -20,10 +20,7 @@
         <p class="migrator-muted">{safe_stage}</p>
     </details>
 
-    <section class="migrator-card">
-        <h2>{upload_title}</h2>
-        {upload_form}
-    </section>
+    {upload_section}
 
     <section class="migrator-card">
         <h2>{jobs_title}</h2>
