@@ -255,6 +255,7 @@ function MIGRATOR_runCoreJob($jobId, $dryRun)
         $report['dry_run'] = $migration;
         MIGRATOR_updateJobReport($jobId, $report, 'dry-run');
     } else {
+        MIGRATOR_refreshTopicState();
         $report['migration'] = $migration;
         MIGRATOR_updateJobReport($jobId, $report, 'migrated');
     }
