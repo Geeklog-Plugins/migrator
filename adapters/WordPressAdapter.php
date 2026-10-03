@@ -303,7 +303,7 @@ class MigratorWordPressAdapter extends MigratorLegacyGeeklogAdapter
             }
 
             if ($postType === 'page') {
-                if (!isset($_TABLES['staticpage'])) {
+                if (!MIGRATOR_isPluginActive('staticpages') || !isset($_TABLES['staticpage'])) {
                     ++$stats['skipped'];
                     continue;
                 }
