@@ -17,8 +17,29 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
         $result['plugins'] = array();
         $result['media_manifest'] = array();
 
-        $result['plugins']['forum'] = $this->migrateForum();
-        $result['plugins']['mediagallery'] = $this->migrateMediaGallery();
+        if (MIGRATOR_isPluginActive('forum')) {
+            $result['plugins']['forum'] = $this->migrateForum();
+        } else {
+            $result['plugins']['forum'] = array(
+                'available' => false,
+                'warnings' => array(
+                    'glFusion Forum data detected, but the Geeklog Forum plugin is not installed and active.'
+                ),
+                'tables' => array()
+            );
+        }
+
+        if (MIGRATOR_isPluginActive('mediagallery')) {
+            $result['plugins']['mediagallery'] = $this->migrateMediaGallery();
+        } else {
+            $result['plugins']['mediagallery'] = array(
+                'available' => false,
+                'warnings' => array(
+                    'glFusion MediaGallery data detected, but the Geeklog MediaGallery plugin is not installed and active.'
+                ),
+                'tables' => array()
+            );
+        }
 
         if (!empty($result['plugins']['forum']['warnings'])) {
             foreach ($result['plugins']['forum']['warnings'] as $warning) {
