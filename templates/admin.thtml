@@ -19,6 +19,8 @@
 .migrator-actions button,.migrator-admin button{min-height:2.5rem;padding:.55rem .9rem}
 .migrator-ok{font-weight:700}
 .migrator-warning{border-left:4px solid currentColor;padding:.65rem .8rem;background:rgba(127,127,127,.06);margin:.8rem 0}
+.migrator-lock{border:2px solid rgba(180,40,40,.6);border-radius:.55rem;padding:1rem 1.1rem;margin:1rem 0;background:rgba(180,40,40,.06)}
+.migrator-lock h2{margin-top:0}
 .migrator-danger{border:1px solid rgba(180,40,40,.45);border-radius:.55rem;padding:1rem 1.1rem;margin-top:1.5rem}
 .migrator-danger h2{margin-top:0}
 .migrator-upload-grid{display:grid;grid-template-columns:minmax(180px,240px) minmax(260px,1fr);gap:1rem;align-items:end}
@@ -41,6 +43,7 @@
     <p class="migrator-lead">{intro}</p>
 
     {message}
+    {lock_message}
 
     <section class="migrator-card">
         <h2>{destination_title}</h2>
