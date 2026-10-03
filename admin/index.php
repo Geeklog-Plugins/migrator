@@ -124,6 +124,7 @@ function MIGRATOR_renderLatestAnalysis()
         $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['content_type']) . '</th>';
         $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['records']) . '</th>';
         $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['support_status']) . '</th>';
+        $html .= '<th>' . MIGRATOR_escape($LANG_MIGRATOR['required_plugin']) . '</th>';
         $html .= '</tr></thead><tbody>';
 
         foreach ($report['entities'] as $entity) {
@@ -140,6 +141,17 @@ function MIGRATOR_renderLatestAnalysis()
             $html .= '<td>' . MIGRATOR_escape($entity['label']) . '</td>';
             $html .= '<td>' . (int) $entity['count'] . '</td>';
             $html .= '<td>' . MIGRATOR_escape($statusLabel) . '</td>';
+
+            $requiredPlugin = isset($entity['required_plugin']) ? (string) $entity['required_plugin'] : '';
+            if ($requiredPlugin === '') {
+                $pluginStatus = $LANG_MIGRATOR['plugin_not_required'];
+            } elseif (!empty($entity['plugin_active'])) {
+                $pluginStatus = $requiredPlugin . ' — ' . $LANG_MIGRATOR['plugin_ready'];
+            } else {
+                $pluginStatus = $requiredPlugin . ' — ' . $LANG_MIGRATOR['plugin_missing'];
+            }
+
+            $html .= '<td>' . MIGRATOR_escape($pluginStatus) . '</td>';
             $html .= '</tr>';
         }
 
