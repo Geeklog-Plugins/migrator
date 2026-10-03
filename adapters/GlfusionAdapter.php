@@ -93,9 +93,9 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             if ($this->sourceTable('filemgmt_filedetail') !== '') {
                 $result['media_manifest'][] = array(
                     'type' => 'Forum attachments via FileMgmt',
-                    'source' => 'public_html/filemgmt_data/files/',
+                    'source' => 'FileMgmt FileStore (default: public_html/filemgmt_data/files/)',
                     'target' => 'public_html/mediagallery/mediaobjects/orig/<first-character>/',
-                    'note' => 'Attachments with repository_id > 0 are resolved through the staged FileMgmt tables and converted into the same MediaGallery album.'
+                    'note' => 'Attachments with repository_id > 0 are resolved through the staged FileMgmt tables. If glFusion FileStore was customized or outside the webroot, use that source directory instead of the default.'
                 );
             }
         }
@@ -564,7 +564,8 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             'stored_name' => $stored,
             'original_name' => basename($original),
             'description' => $description,
-            'source_relative' => 'filemgmt_data/files/' . $stored
+            'source_relative' => 'filemgmt_data/files/' . $stored,
+            'source_path_note' => 'Default glFusion FileMgmt FileStore; verify the source FileStore setting if it was customized.'
         );
     }
 
