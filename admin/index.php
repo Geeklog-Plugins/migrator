@@ -713,6 +713,14 @@ $uploadForm .= '<p class="migrator-muted">' . MIGRATOR_escape($LANG_MIGRATOR['ac
 $uploadForm .= '<div class="migrator-actions"><button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['import_stage']) . '</button></div>';
 $uploadForm .= '</form>';
 
+$uploadSection = '';
+if (!$siteLocked) {
+    $uploadSection = '<section class="migrator-card">'
+        . '<h2>' . MIGRATOR_escape($LANG_MIGRATOR['upload']) . '</h2>'
+        . $uploadForm
+        . '</section>';
+}
+
 $purgeToken = SEC_createToken();
 $purgeForm = '<form method="post" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '" onsubmit="return confirm('
     . htmlspecialchars(json_encode($LANG_MIGRATOR['purge_confirm']), ENT_QUOTES, 'UTF-8') . ');">';
@@ -722,7 +730,7 @@ $purgeForm .= '<button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['purge']
 $purgeForm .= '</form>';
 
 if ($siteLocked) {
-    $uploadForm = '<p class="migrator-muted">' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_controls']) . '</p>';
+    $uploadSection = '';
     $jobsTable = '<p class="migrator-muted">' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_no_jobs']) . '</p>';
     $analysisHtml = '';
     $migrationActions = '';
@@ -750,8 +758,7 @@ $template->set_var(array(
     'destination_title' => MIGRATOR_escape($LANG_MIGRATOR['destination_title']),
     'safe_stage' => MIGRATOR_escape($LANG_MIGRATOR['safe_stage']),
     'destination_status' => $destinationMessage,
-    'upload_title' => MIGRATOR_escape($LANG_MIGRATOR['upload']),
-    'upload_form' => $uploadForm,
+    'upload_section' => $uploadSection,
     'jobs_title' => MIGRATOR_escape($LANG_MIGRATOR['jobs']),
     'jobs_table' => $jobsTable,
     'analysis_title' => MIGRATOR_escape($LANG_MIGRATOR['analysis']),
