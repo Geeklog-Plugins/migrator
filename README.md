@@ -119,3 +119,18 @@ Current limitations:
 - pingbacks/trackbacks are not imported as comments
 - attachment post records and featured-image metadata are not converted yet
 - plugin-specific WordPress data is not migrated
+
+
+## Accepted database dump formats
+
+Migrator accepts:
+
+- `.sql`
+- `.sql.gz`
+- `.zip` containing exactly one `.sql` file
+
+Compressed uploads are normalized to a private `.sql` file under `path_data/migrator/` before staging.
+
+ZIP files are never extracted wholesale. Migrator reads the archive, rejects unsafe paths, requires exactly one SQL dump, and writes only that SQL entry to private storage.
+
+The current uncompressed safety limit is 256 MiB.
