@@ -373,6 +373,10 @@ class MigratorLegacyGeeklogAdapter
             if ($copy['ok']) {
                 ++$stats[$this->dryRun ? 'would_import' : 'imported'];
                 $this->mapId('staticpage', $id, $id, $this->dryRun ? 'planned' : 'imported');
+
+                if (!$this->sourceHasTopicAssignment('staticpages', $id)) {
+                    $this->assignItemToAllTopics('staticpages', $id);
+                }
             } else {
                 ++$stats['skipped'];
             }
@@ -381,6 +385,84 @@ class MigratorLegacyGeeklogAdapter
         return $stats;
     }
 
+
+
+    private function sourceHasTopicAssignment($type, $id)
+    {
+        $source = $this->sourceTable('topic_assignments');
+        if ($source === '') {
+            return false;
+        }
+
+        $typeEsc = DB_escapeString((string) $type);
+        $idEsc = DB_escapeString((string) $id);
+        $result = DB_query(
+            "SELECT COUNT(*) AS total FROM {$source}
+             WHERE type = '{$typeEsc}' AND id = '{$idEsc}'",
+            1
+        );
+
+        if ($result === false) {
+            return false;
+        }
+
+        $row = DB_fetchArray($result);
+
+        return is_array($row) && isset($row['total']) && (int) $row['total'] > 0;
+    }
+
+    private function assignItemToAllTopics($type, $id)
+    {
+        global $_TABLES;
+
+        if (!isset($_TABLES['topic_assignments'])) {
+            ++$this->legacyTopicAssignmentStats['skipped'];
+            return;
+        }
+
+        if ($this->dryRun) {
+            ++$this->legacyTopicAssignmentStats['would_import'];
+            return;
+        }
+
+        $tid = defined('TOPIC_ALL_OPTION') ? TOPIC_ALL_OPTION : 'all';
+        $tidEsc = DB_escapeString($tid);
+        $typeEsc = DB_escapeString((string) $type);
+        $idEsc = DB_escapeString((string) $id);
+
+        $result = DB_query(
+            "SELECT COUNT(*) AS total FROM {$_TABLES['topic_assignments']}
+             WHERE tid = '{$tidEsc}'
+             AND type = '{$typeEsc}'
+             AND subtype = ''
+             AND id = '{$idEsc}'"
+        );
+        $row = DB_fetchArray($result);
+
+        if (is_array($row) && (int) $row['total'] > 0) {
+            ++$this->legacyTopicAssignmentStats['preserved'];
+            return;
+        }
+
+        DB_query(
+            "INSERT INTO {$_TABLES['topic_assignments']}
+             (tid, type, subtype, id, inherit, tdefault)
+             VALUES ('{$tidEsc}', '{$typeEsc}', '', '{$idEsc}', 1, 1)"
+        );
+        ++$this->legacyTopicAssignmentStats['imported'];
+    }
+
+    private function isSpecialTopicAssignment($tid)
+    {
+        return in_array(
+            (string) $tid,
+            array(
+                defined('TOPIC_ALL_OPTION') ? TOPIC_ALL_OPTION : 'all',
+                defined('TOPIC_HOMEONLY_OPTION') ? TOPIC_HOMEONLY_OPTION : 'homeonly'
+            ),
+            true
+        );
+    }
 
     private function migrateTopicAssignments()
     {
@@ -422,24 +504,34 @@ class MigratorLegacyGeeklogAdapter
             $targetField = $type === 'article' ? 'sid' : 'sp_id';
 
             if ($this->dryRun) {
-                $sourceTopics = $this->sourceTable('topics');
                 $sourceItems = $type === 'article'
                     ? $this->sourceTable('stories')
                     : $this->sourceTable('staticpage');
 
-                if ($sourceTopics === ''
-                    || $sourceItems === ''
-                    || !$this->rowExists($sourceTopics, 'tid', $tid)
+                $topicExists = $this->isSpecialTopicAssignment($tid);
+                if (!$topicExists) {
+                    $sourceTopics = $this->sourceTable('topics');
+                    $topicExists = $sourceTopics !== ''
+                        && $this->rowExists($sourceTopics, 'tid', $tid);
+                }
+
+                if ($sourceItems === ''
+                    || !$topicExists
                     || !$this->rowExists($sourceItems, $targetField, $id)
                 ) {
                     ++$stats['skipped'];
                     continue;
                 }
-            } elseif (DB_count($_TABLES['topics'], 'tid', DB_escapeString($tid)) === 0
-                || DB_count($targetTable, $targetField, DB_escapeString($id)) === 0
-            ) {
-                ++$stats['skipped'];
-                continue;
+            } else {
+                $topicExists = $this->isSpecialTopicAssignment($tid)
+                    || DB_count($_TABLES['topics'], 'tid', DB_escapeString($tid)) > 0;
+
+                if (!$topicExists
+                    || DB_count($targetTable, $targetField, DB_escapeString($id)) === 0
+                ) {
+                    ++$stats['skipped'];
+                    continue;
+                }
             }
 
             $tidEsc = DB_escapeString($tid);
