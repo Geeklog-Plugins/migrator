@@ -168,8 +168,16 @@ function MIGRATOR_renderLatestAnalysis()
         $html .= '</tbody></table></div>';
     }
 
+    if ($row['status'] === 'dry-run') {
+        $nextText = $LANG_MIGRATOR['next_after_dry_run'];
+    } elseif ($row['status'] === 'migrated') {
+        $nextText = $LANG_MIGRATOR['next_after_migration'];
+    } else {
+        $nextText = $LANG_MIGRATOR['next_text'];
+    }
+
     $html .= '<p class="migrator-muted"><strong>' . MIGRATOR_escape($LANG_MIGRATOR['next']) . ':</strong> '
-        . MIGRATOR_escape($LANG_MIGRATOR['next_text']) . '</p>';
+        . MIGRATOR_escape($nextText) . '</p>';
 
     return $html;
 }
@@ -424,19 +432,36 @@ function MIGRATOR_renderMigrationActions()
 
     $jobId = (int) $job['job_id'];
     $missingDependencies = MIGRATOR_missingDependencies($job);
+    $report = json_decode($job['report'], true);
+    if (!is_array($report)) {
+        $report = array();
+    }
+
+    $html = MIGRATOR_renderDependencyWarning($missingDependencies);
+
+    if (isset($report['migration']) && is_array($report['migration'])) {
+        $html .= MIGRATOR_renderMigrationResult($report['migration'], $LANG_MIGRATOR['migration_result']);
+        return $html;
+    }
+
+    if (isset($report['dry_run']) && is_array($report['dry_run'])) {
+        $html .= MIGRATOR_renderMigrationResult($report['dry_run'], $LANG_MIGRATOR['dry_run_result']);
+    }
+
     $token1 = SEC_createToken();
     $token2 = SEC_createToken();
 
-    $html = MIGRATOR_renderDependencyWarning($missingDependencies);
     $html .= '<div class="migrator-actions">';
     $html .= '<form method="post" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '">';
     $html .= '<input type="hidden" name="mode" value="dryrun">';
     $html .= '<input type="hidden" name="job_id" value="' . $jobId . '">';
     $html .= '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . MIGRATOR_escape($token1) . '">';
-    $html .= '<button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['run_dry_run']) . '</button>';
+    $html .= '<button type="submit">'
+        . MIGRATOR_escape(isset($report['dry_run']) ? $LANG_MIGRATOR['run_dry_run_again'] : $LANG_MIGRATOR['run_dry_run'])
+        . '</button>';
     $html .= '</form>';
 
-    if (empty($missingDependencies)) {
+    if (empty($missingDependencies) && isset($report['dry_run'])) {
         $html .= '<form method="post" action="' . MIGRATOR_escape(MIGRATOR_adminUrl()) . '" onsubmit="return confirm('
             . htmlspecialchars(json_encode($LANG_MIGRATOR['migrate_confirm']), ENT_QUOTES, 'UTF-8') . ');">';
         $html .= '<input type="hidden" name="mode" value="migrate">';
@@ -445,19 +470,15 @@ function MIGRATOR_renderMigrationActions()
         $html .= '<button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['run_migration']) . '</button>';
         $html .= '</form>';
     }
+
     $html .= '</div>';
 
-    $report = json_decode($job['report'], true);
-    if (is_array($report) && isset($report['dry_run']) && is_array($report['dry_run'])) {
-        $html .= MIGRATOR_renderMigrationResult($report['dry_run'], $LANG_MIGRATOR['dry_run_result']);
-    }
-    if (is_array($report) && isset($report['migration']) && is_array($report['migration'])) {
-        $html .= MIGRATOR_renderMigrationResult($report['migration'], $LANG_MIGRATOR['migration_result']);
+    if (!isset($report['dry_run'])) {
+        $html .= '<p class="migrator-muted">' . MIGRATOR_escape($LANG_MIGRATOR['dry_run_required']) . '</p>';
     }
 
     return $html;
 }
-
 
 function MIGRATOR_renderResetForm()
 {
