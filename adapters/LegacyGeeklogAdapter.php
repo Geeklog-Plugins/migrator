@@ -28,8 +28,10 @@ class MigratorLegacyGeeklogAdapter
                 continue;
             }
 
-            if ($entity === 'staticpages' && !isset($_TABLES['staticpage'])) {
-                $result['warnings'][] = 'Static Pages is not installed on the destination.';
+            if ($entity === 'staticpages'
+                && (!MIGRATOR_isPluginActive('staticpages') || !isset($_TABLES['staticpage']))
+            ) {
+                $result['warnings'][] = 'Static Pages source data detected, but the Static Pages plugin is not installed and active on the destination.';
                 continue;
             }
 
