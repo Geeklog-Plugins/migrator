@@ -87,7 +87,7 @@ See [ROADMAP.md](ROADMAP.md) for the migration scope and milestones.
 
 The current adapter migrates the compatible Forum data into the current Geeklog Forum tables.
 
-The legacy glFusion tables `ff_attachments`, `ff_bookmarks` and `ff_rating_assoc` do not have direct equivalents in the current target schema and are reported instead of being forced into an unsafe mapping.
+The legacy glFusion `ff_attachments` records are converted to MediaGallery downloads. `ff_bookmarks` and `ff_rating_assoc` still have no direct target equivalents and are reported instead of being force-mapped.
 
 ### MediaGallery
 
@@ -134,3 +134,20 @@ Compressed uploads are normalized to a private `.sql` file under `path_data/migr
 ZIP files are never extracted wholesale. Migrator reads the archive, rejects unsafe paths, requires exactly one SQL dump, and writes only that SQL entry to private storage.
 
 The current uncompressed safety limit is 256 MiB.
+
+
+### glFusion Forum attachments → MediaGallery
+
+When the source contains `ff_attachments`, MediaGallery is a required destination dependency.
+
+Migrator converts Forum attachments into a dedicated MediaGallery album named `Forum attachments (glFusion)`:
+
+- normal Forum attachments are resolved from the glFusion Forum upload storage (default `public_html/forum/media/`);
+- attachments with `repository_id > 0` are resolved through staged FileMgmt records;
+- FileMgmt's default source store is `public_html/filemgmt_data/files/`, but installations with a customized or outside-webroot `FileStore` must use their actual configured source directory;
+- each attachment receives a deterministic MediaGallery `media_id`;
+- each migrated Forum post receives a MediaGallery `[download:...]` autotag pointing to the recovered file;
+- attachment media are stored as generic downloadable MediaGallery items so no image/video derivatives are required during database migration;
+- the dry run and migration report list the exact source and target file path for every attachment.
+
+Migrator migrates the database records only. The administrator must copy the physical files to the exact `mediagallery/mediaobjects/orig/<first-character>/...` paths shown in the report.
