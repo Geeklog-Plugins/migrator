@@ -52,6 +52,7 @@ $LANG_MIGRATOR = array(
     'invalid_file' => 'Supported database dump formats are .sql, .sql.gz and .zip containing exactly one .sql file.',
     'stage_failed' => 'The SQL dump could not be staged safely.',
     'stage_success' => 'The SQL dump was staged and analysed.',
+    'stage_blocked_active_job' => 'A migration is already staged. Purge the current migration before uploading another dump.',
     'purge' => 'Purge staged source',
     'purge_confirm' => 'Remove all staged source tables and migration jobs?',
     'purged' => 'Staged migration data was removed.',
