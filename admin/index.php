@@ -590,10 +590,7 @@ if ($requestMethod === 'POST') {
         if (!$currentDestination['fresh']) {
             $message = MIGRATOR_adminMessage($LANG_MIGRATOR['destination_not_fresh'], 'error');
         } elseif ($existingJobCount > 0) {
-            $message = MIGRATOR_adminMessage(
-                'A migration is already staged. Purge the current migration before uploading another dump.',
-                'error'
-            );
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['stage_blocked_active_job'], 'error');
         } else {
         $allowedCms = array('legacy_geeklog', 'glfusion', 'wordpress');
         $sourceCms = isset($_POST['source_cms']) ? COM_applyFilter($_POST['source_cms']) : '';
