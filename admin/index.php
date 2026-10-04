@@ -583,8 +583,17 @@ if ($requestMethod === 'POST') {
         $message = MIGRATOR_adminMessage($LANG_MIGRATOR['security_error'], 'error');
     } elseif ($mode === 'stage') {
         $currentDestination = MIGRATOR_destinationStatus();
+        $existingJobCount = isset($_TABLES['migrator_jobs'])
+            ? (int) DB_count($_TABLES['migrator_jobs'])
+            : 0;
+
         if (!$currentDestination['fresh']) {
             $message = MIGRATOR_adminMessage($LANG_MIGRATOR['destination_not_fresh'], 'error');
+        } elseif ($existingJobCount > 0) {
+            $message = MIGRATOR_adminMessage(
+                'A migration is already staged. Purge the current migration before uploading another dump.',
+                'error'
+            );
         } else {
         $allowedCms = array('legacy_geeklog', 'glfusion', 'wordpress');
         $sourceCms = isset($_POST['source_cms']) ? COM_applyFilter($_POST['source_cms']) : '';
