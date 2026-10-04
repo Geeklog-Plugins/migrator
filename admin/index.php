@@ -582,6 +582,10 @@ if ($requestMethod === 'POST') {
     } elseif (!SEC_checkToken()) {
         $message = MIGRATOR_adminMessage($LANG_MIGRATOR['security_error'], 'error');
     } elseif ($mode === 'stage') {
+        $currentDestination = MIGRATOR_destinationStatus();
+        if (!$currentDestination['fresh']) {
+            $message = MIGRATOR_adminMessage($LANG_MIGRATOR['destination_not_fresh'], 'error');
+        } else {
         $allowedCms = array('legacy_geeklog', 'glfusion', 'wordpress');
         $sourceCms = isset($_POST['source_cms']) ? COM_applyFilter($_POST['source_cms']) : '';
 
@@ -617,6 +621,7 @@ if ($requestMethod === 'POST') {
                     'error'
                 );
             }
+        }
         }
     } elseif ($mode === 'dryrun') {
         $jobId = isset($_POST['job_id']) ? (int) $_POST['job_id'] : 0;
@@ -675,7 +680,14 @@ if ($requestMethod === 'POST') {
  * now, not as it was at the start of the request.
  */
 $destination = MIGRATOR_destinationStatus();
-$siteLocked = !$destination['fresh'] && !MIGRATOR_hasCompletedMigration();
+$hasCompletedMigration = MIGRATOR_hasCompletedMigration();
+$siteLocked = !$destination['fresh'] && !$hasCompletedMigration;
+
+$jobCount = isset($_TABLES['migrator_jobs'])
+    ? (int) DB_count($_TABLES['migrator_jobs'])
+    : 0;
+$hasJob = $jobCount > 0;
+$canStage = $destination['fresh'] && !$hasCompletedMigration;
 
 $destinationMessage = '<p class="' . ($destination['fresh'] ? 'migrator-ok' : 'migrator-warning') . '">'
     . '<span class="migrator-status">'
@@ -724,7 +736,7 @@ $uploadForm .= '<div class="migrator-actions"><button type="submit">' . MIGRATOR
 $uploadForm .= '</form>';
 
 $uploadSection = '';
-if (!$siteLocked) {
+if ($canStage) {
     $uploadSection = '<section class="migrator-card">'
         . '<h2>' . MIGRATOR_escape($LANG_MIGRATOR['upload']) . '</h2>'
         . $uploadForm
@@ -739,18 +751,52 @@ $purgeForm .= '<input type="hidden" name="' . CSRF_TOKEN . '" value="' . MIGRATO
 $purgeForm .= '<button type="submit">' . MIGRATOR_escape($LANG_MIGRATOR['purge']) . '</button>';
 $purgeForm .= '</form>';
 
+if (!$hasJob) {
+    $purgeForm = '';
+}
+
 if ($siteLocked) {
     $uploadSection = '';
-    $jobsTable = '<p class="migrator-muted">' . MIGRATOR_escape($LANG_MIGRATOR['site_locked_no_jobs']) . '</p>';
+    $jobsTable = '';
     $analysisHtml = '';
     $migrationActions = '';
     $resetForm = '';
     $purgeForm = '';
-} else {
+} elseif ($hasJob) {
     $jobsTable = MIGRATOR_renderJobs();
     $analysisHtml = MIGRATOR_renderLatestAnalysis();
     $migrationActions = MIGRATOR_renderMigrationActions();
     $resetForm = MIGRATOR_renderResetForm();
+} else {
+    $jobsTable = '';
+    $analysisHtml = '';
+    $migrationActions = '';
+    $resetForm = '';
+}
+
+$jobsSection = '';
+if ($hasJob && $jobsTable !== '') {
+    $jobsSection = '<section class="migrator-card">'
+        . '<h2>' . MIGRATOR_escape($LANG_MIGRATOR['jobs']) . '</h2>'
+        . $jobsTable
+        . '</section>';
+}
+
+$analysisSection = '';
+if ($hasJob && ($analysisHtml !== '' || $migrationActions !== '')) {
+    $analysisSection = '<section class="migrator-card">'
+        . '<h2>' . MIGRATOR_escape($LANG_MIGRATOR['analysis']) . '</h2>'
+        . $analysisHtml
+        . $migrationActions
+        . '</section>';
+}
+
+$dangerSection = '';
+if ($resetForm !== '' || $purgeForm !== '') {
+    $dangerSection = '<section class="migrator-danger">'
+        . $resetForm
+        . $purgeForm
+        . '</section>';
 }
 
 $template = COM_newTemplate($_CONF['path'] . 'plugins/migrator/templates');
@@ -769,6 +815,11 @@ $template->set_var(array(
     'safe_stage' => MIGRATOR_escape($LANG_MIGRATOR['safe_stage']),
     'destination_status' => $destinationMessage,
     'upload_section' => $uploadSection,
+    'upload_title' => MIGRATOR_escape($LANG_MIGRATOR['upload']),
+    'upload_form' => $canStage ? $uploadForm : '',
+    'jobs_section' => $jobsSection,
+    'analysis_section' => $analysisSection,
+    'danger_section' => $dangerSection,
     'jobs_title' => MIGRATOR_escape($LANG_MIGRATOR['jobs']),
     'jobs_table' => $jobsTable,
     'analysis_title' => MIGRATOR_escape($LANG_MIGRATOR['analysis']),
