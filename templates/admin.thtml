@@ -22,19 +22,9 @@
 
     {upload_section}
 
-    <section class="migrator-card">
-        <h2>{jobs_title}</h2>
-        {jobs_table}
-    </section>
+    {jobs_section}
 
-    <section class="migrator-card">
-        <h2>{analysis_title}</h2>
-        {analysis}
-        {migration_actions}
-    </section>
+    {analysis_section}
 
-    <section class="migrator-danger">
-        {reset_form}
-        {purge_form}
-    </section>
+    {danger_section}
 </div>
