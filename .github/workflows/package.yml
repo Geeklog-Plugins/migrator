@@ -84,21 +84,21 @@ jobs:
             build/migrator/
 
           cd build
-          zip -r migrator_1.0.0_2.1.1.zip migrator >/dev/null
+          zip -r migrator_1.0.0_2.2.2.zip migrator >/dev/null
 
-          unzip -t migrator_1.0.0_2.1.1.zip >/dev/null
+          unzip -t migrator_1.0.0_2.2.2.zip >/dev/null
 
-          test "$(zipinfo -1 migrator_1.0.0_2.1.1.zip | head -n 1)" = 'migrator/'
-          unzip -p migrator_1.0.0_2.1.1.zip migrator/autoinstall.php | grep -q "'pi_version' => '1.0.0'"
-          unzip -p migrator_1.0.0_2.1.1.zip migrator/autoinstall.php | grep -q "'pi_gl_version' => '2.2.2'"
-          zipinfo -1 migrator_1.0.0_2.1.1.zip | grep -q '^migrator/admin/css/admin.css$'
+          test "$(zipinfo -1 migrator_1.0.0_2.2.2.zip | head -n 1)" = 'migrator/'
+          unzip -p migrator_1.0.0_2.2.2.zip migrator/autoinstall.php | grep -q "'pi_version' => '1.0.0'"
+          unzip -p migrator_1.0.0_2.2.2.zip migrator/autoinstall.php | grep -q "'pi_gl_version' => '2.2.2'"
+          zipinfo -1 migrator_1.0.0_2.2.2.zip | grep -q '^migrator/admin/css/admin.css$'
 
-          if unzip -p migrator_1.0.0_2.1.1.zip migrator/templates/admin.thtml | grep -q '<style>'; then
+          if unzip -p migrator_1.0.0_2.2.2.zip migrator/templates/admin.thtml | grep -q '<style>'; then
             echo "Inline admin CSS must not be packaged." >&2
             exit 1
           fi
 
-          if zipinfo -1 migrator_1.0.0_2.1.1.zip | awk -F/ '
+          if zipinfo -1 migrator_1.0.0_2.2.2.zip | awk -F/ '
             {
               for (i = 1; i <= NF; i++) {
                 if ($i ~ /^\./) {
@@ -118,7 +118,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: migrator-1.0.0-installable
-          path: build/migrator_1.0.0_2.1.1.zip
+          path: build/migrator_1.0.0_2.2.2.zip
           if-no-files-found: error
 
       - name: Commit archive to dist
@@ -127,8 +127,8 @@ jobs:
           set -euo pipefail
 
           mkdir -p dist
-          find dist -maxdepth 1 -type f -name 'migrator_*.zip' ! -name 'migrator_1.0.0_2.1.1.zip' -delete
-          cp build/migrator_1.0.0_2.1.1.zip dist/migrator_1.0.0_2.1.1.zip
+          find dist -maxdepth 1 -type f -name 'migrator_*.zip' ! -name 'migrator_1.0.0_2.2.2.zip' -delete
+          cp build/migrator_1.0.0_2.2.2.zip dist/migrator_1.0.0_2.2.2.zip
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
