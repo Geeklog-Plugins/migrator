@@ -750,7 +750,196 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             }
         }
 
+        $integrity = $this->repairMediaGalleryIntegrity();
+        $report['integrity'] = $integrity;
+        if (!empty($integrity['warnings'])) {
+            foreach ($integrity['warnings'] as $warning) {
+                $report['warnings'][] = $warning;
+            }
+        }
+
         return $report;
+    }
+
+
+    private function repairMediaGalleryIntegrity()
+    {
+        global $_TABLES;
+
+        $stats = array(
+            'relations_checked' => 0,
+            'relations_repaired' => 0,
+            'albums_repaired' => 0
+        );
+        $warnings = array();
+
+        if (!isset($_TABLES['mg_albums'], $_TABLES['mg_media'], $_TABLES['mg_media_albums'])) {
+            $warnings[] = 'MediaGallery integrity check skipped because destination tables are unavailable.';
+            return array_merge($stats, array('warnings' => $warnings));
+        }
+
+        $sourceRelations = $this->sourceTable('mg_media_albums');
+        $sourceAlbums = $this->sourceTable('mg_albums');
+
+        if ($sourceRelations === '' || $sourceAlbums === '') {
+            return array_merge($stats, array('warnings' => $warnings));
+        }
+
+        $relations = $this->fetchRows($sourceRelations);
+        foreach ($relations as $relation) {
+            $albumId = isset($relation['album_id']) ? (int) $relation['album_id'] : 0;
+            $mediaId = isset($relation['media_id']) ? (string) $relation['media_id'] : '';
+
+            if ($albumId <= 0 || $mediaId === '') {
+                continue;
+            }
+
+            ++$stats['relations_checked'];
+
+            if ($this->dryRun) {
+                continue;
+            }
+
+            if (DB_count($_TABLES['mg_media'], 'media_id', DB_escapeString($mediaId)) === 0) {
+                $warnings[] = 'MediaGallery relation skipped: media ' . $mediaId
+                    . ' does not exist in the destination.';
+                continue;
+            }
+
+            if (DB_count($_TABLES['mg_albums'], 'album_id', $albumId) === 0) {
+                $sourceAlbum = $this->fetchOneBy($sourceAlbums, 'album_id', $albumId);
+                if (is_array($sourceAlbum)) {
+                    if (isset($sourceAlbum['opacity']) && !isset($sourceAlbum['wm_opacity'])) {
+                        $sourceAlbum['wm_opacity'] = $sourceAlbum['opacity'];
+                    }
+                    $copy = $this->copyIntersectionRow(
+                        $sourceAlbums,
+                        $_TABLES['mg_albums'],
+                        $sourceAlbum,
+                        array('album_id'),
+                        false
+                    );
+                    if ($copy['ok']) {
+                        ++$stats['albums_repaired'];
+                    }
+                }
+            }
+
+            if (DB_count($_TABLES['mg_albums'], 'album_id', $albumId) === 0) {
+                $warnings[] = 'MediaGallery relation skipped: source album #'
+                    . $albumId . ' could not be created.';
+                continue;
+            }
+
+            $mediaIdEsc = DB_escapeString($mediaId);
+            $check = DB_query(
+                "SELECT COUNT(*) AS total FROM {$_TABLES['mg_media_albums']}
+                 WHERE album_id = " . $albumId . "
+                 AND media_id = '" . $mediaIdEsc . "'",
+                1
+            );
+            $existing = $check !== false ? DB_fetchArray($check) : null;
+
+            if (!is_array($existing) || (int) $existing['total'] === 0) {
+                $order = isset($relation['media_order']) ? (int) $relation['media_order'] : 0;
+                DB_query(
+                    "INSERT INTO {$_TABLES['mg_media_albums']}
+                     (album_id, media_id, media_order)
+                     VALUES (" . $albumId . ", '" . $mediaIdEsc . "', " . $order . ")"
+                );
+                ++$stats['relations_repaired'];
+            }
+        }
+
+        if (!$this->dryRun) {
+            $this->repairMediaGalleryAlbumReferences($sourceAlbums, $stats, $warnings);
+        }
+
+        return array_merge($stats, array(
+            'warnings' => array_values(array_unique($warnings))
+        ));
+    }
+
+    private function repairMediaGalleryAlbumReferences($sourceAlbums, array &$stats, array &$warnings)
+    {
+        global $_TABLES;
+
+        $mediaGalleryGroup = 0;
+        if (isset($_TABLES['groups'])) {
+            $mediaGalleryGroup = (int) DB_getItem(
+                $_TABLES['groups'],
+                'grp_id',
+                "grp_name = 'MediaGallery Admin'"
+            );
+            if ($mediaGalleryGroup <= 0) {
+                $mediaGalleryGroup = (int) DB_getItem(
+                    $_TABLES['groups'],
+                    'grp_id',
+                    "grp_name = 'mediagallery Admin'"
+                );
+            }
+        }
+
+        $result = DB_query("SELECT * FROM {$_TABLES['mg_albums']} ORDER BY album_id");
+        $nextOrder = 10;
+
+        while ($album = DB_fetchArray($result)) {
+            $albumId = (int) $album['album_id'];
+            $updates = array();
+
+            $parent = isset($album['album_parent']) ? (int) $album['album_parent'] : 0;
+            if ($parent > 0
+                && DB_count($_TABLES['mg_albums'], 'album_id', $parent) === 0
+            ) {
+                $updates['album_parent'] = 0;
+                $warnings[] = 'MediaGallery album #' . $albumId
+                    . ' referenced missing parent #' . $parent
+                    . '; moved to the gallery root.';
+            }
+
+            $owner = isset($album['owner_id']) ? (int) $album['owner_id'] : 0;
+            if ($owner <= 0
+                || !isset($_TABLES['users'])
+                || DB_count($_TABLES['users'], 'uid', $owner) === 0
+            ) {
+                $updates['owner_id'] = 2;
+                $warnings[] = 'MediaGallery album #' . $albumId
+                    . ' referenced a missing owner; owner changed to Geeklog Admin (uid 2).';
+            }
+
+            foreach (array('group_id', 'mod_group_id') as $groupField) {
+                $groupId = isset($album[$groupField]) ? (int) $album[$groupField] : 0;
+                if ($groupId > 0
+                    && isset($_TABLES['groups'])
+                    && DB_count($_TABLES['groups'], 'grp_id', $groupId) > 0
+                ) {
+                    continue;
+                }
+
+                if ($mediaGalleryGroup > 0) {
+                    $updates[$groupField] = $mediaGalleryGroup;
+                }
+            }
+
+            $order = isset($album['album_order']) ? (int) $album['album_order'] : 0;
+            if ($order <= 0) {
+                $updates['album_order'] = $nextOrder;
+            }
+            $nextOrder += 10;
+
+            if (!empty($updates)) {
+                $sets = array();
+                foreach ($updates as $field => $value) {
+                    $sets[] = $field . ' = ' . (int) $value;
+                }
+                DB_query(
+                    "UPDATE {$_TABLES['mg_albums']}
+                     SET " . implode(', ', $sets) . "
+                     WHERE album_id = " . $albumId
+                );
+                ++$stats['albums_repaired'];
+            }
+        }
     }
 
     private function migratePluginTable($sourceSuffix, $targetTable, $entityType, $idField = '')
