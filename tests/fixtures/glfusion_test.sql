@@ -168,11 +168,17 @@ CREATE TABLE gf_mg_albums (
 CREATE TABLE gf_mg_media (
   media_id varchar(40) NOT NULL,
   media_filename varchar(255) NOT NULL DEFAULT '',
+  media_original_filename varchar(255) NOT NULL DEFAULT '',
+  media_mime_ext varchar(255) NOT NULL DEFAULT '',
+  mime_type varchar(255) NOT NULL DEFAULT '',
   media_title varchar(255) NOT NULL DEFAULT '',
   media_desc text,
   media_time int(11) NOT NULL DEFAULT 0,
   media_views int(11) NOT NULL DEFAULT 0,
   media_user_id mediumint(8) NOT NULL DEFAULT 2,
+  media_approval tinyint(3) NOT NULL DEFAULT 0,
+  media_type tinyint(4) NOT NULL DEFAULT 0,
+  media_upload_time int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (media_id)
 );
 
@@ -231,7 +237,9 @@ INSERT INTO gf_mg_albums VALUES
 (1,'Test Album','Synthetic MediaGallery album.',0,3,1,3,2,2,2,25);
 
 INSERT INTO gf_mg_media VALUES
-('media001','test-image.jpg','Test Image','Synthetic MediaGallery image.',1530525600,12,3);
+('media001','test-image','test-image.jpg','jpg','image/jpeg','Test Image','Synthetic MediaGallery image.',1530525600,12,3,0,0,1530525600),
+('media002','test-document','test-document.pdf','pdf','application/pdf','Test Document','Synthetic MediaGallery document.',1530529200,4,3,0,4,1530529200);
 
 INSERT INTO gf_mg_media_albums VALUES
-(1,'media001',10);
+(1,'media001',10),
+(1,'media002',20);
