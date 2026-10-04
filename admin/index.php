@@ -687,7 +687,7 @@ $jobCount = isset($_TABLES['migrator_jobs'])
     ? (int) DB_count($_TABLES['migrator_jobs'])
     : 0;
 $hasJob = $jobCount > 0;
-$canStage = $destination['fresh'] && !$hasCompletedMigration;
+$canStage = $destination['fresh'] && !$hasCompletedMigration && !$hasJob;
 
 $destinationMessage = '<p class="' . ($destination['fresh'] ? 'migrator-ok' : 'migrator-warning') . '">'
     . '<span class="migrator-status">'
