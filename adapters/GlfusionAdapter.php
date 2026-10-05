@@ -77,7 +77,7 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             $result['media_manifest'][] = array(
                 'type' => 'MediaGallery',
                 'source' => 'public_html/mediagallery/mediaobjects/',
-                'target' => 'public_html/mediagallery/mediaobjects/',
+                'target' => 'MediaGallery persistent storage (default: public_html/images/mediagallery/)',
                 'note' => 'Copy the complete mediaobjects directory after database migration.'
             );
         }
@@ -86,7 +86,7 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             $result['media_manifest'][] = array(
                 'type' => 'Forum attachments',
                 'source' => 'public_html/forum/media/',
-                'target' => 'public_html/mediagallery/mediaobjects/orig/<first-character>/',
+                'target' => 'MediaGallery persistent storage orig/<first-character>/ (default: public_html/images/mediagallery/orig/<first-character>/)',
                 'note' => 'Copy each glFusion Forum attachment to the exact MediaGallery target filename listed in the migration log/report.'
             );
 
@@ -94,7 +94,7 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
                 $result['media_manifest'][] = array(
                     'type' => 'Forum attachments via FileMgmt',
                     'source' => 'FileMgmt FileStore (default: public_html/filemgmt_data/files/)',
-                    'target' => 'public_html/mediagallery/mediaobjects/orig/<first-character>/',
+                    'target' => 'MediaGallery persistent storage orig/<first-character>/ (default: public_html/images/mediagallery/orig/<first-character>/)',
                     'note' => 'Attachments with repository_id > 0 are resolved through the staged FileMgmt tables. If glFusion FileStore was customized or outside the webroot, use that source directory instead of the default.'
                 );
             }
@@ -256,7 +256,7 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
             }
 
             if ($this->dryRun) {
-                $targetRelative = 'mediagallery/mediaobjects/orig/'
+                $targetRelative = 'images/mediagallery/orig/'
                     . $mediaFilename[0] . '/'
                     . $mediaFilename . '.' . $extension;
 
@@ -358,7 +358,7 @@ class MigratorGlfusionAdapter extends MigratorLegacyGeeklogAdapter
                 'imported'
             );
 
-            $targetRelative = 'mediagallery/mediaobjects/orig/'
+            $targetRelative = 'images/mediagallery/orig/'
                 . $mediaFilename[0] . '/'
                 . $mediaFilename . '.' . $extension;
 
