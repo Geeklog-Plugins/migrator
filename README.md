@@ -40,7 +40,7 @@ The `develop-0.1.0` branch currently provides:
 - glFusion Forum migration for categories, forums, posts, logs, moderators, user preferences, banned IPs and forum profile data
 - glFusion MediaGallery migration for albums, media, album relations, queues, playback options, usage tracking, user preferences, watermarks, categories, sessions, sorting, ratings and EXIF settings
 - MediaGallery `opacity` -> `wm_opacity` field conversion
-- post-migration file manifest for MediaGallery mediaobjects and unsupported Forum attachments
+- post-migration file manifest for MediaGallery media and converted Forum attachments
 - ID preservation for users, topics, stories, comments and Static Pages when safe
 - migration of legacy user profile fields into Geeklog 2.2.2 `user_attributes`
 - automatic membership of imported users in the destination core groups
@@ -93,7 +93,7 @@ The legacy glFusion `ff_attachments` records are converted to MediaGallery downl
 
 The database schemas are highly compatible. Most MediaGallery tables migrate through their common columns while preserving IDs and relationships.
 
-Media files are intentionally **not copied by Migrator**. After database migration, the administrator is instructed to copy the complete source `public_html/mediagallery/mediaobjects/` directory to the corresponding Geeklog MediaGallery directory.
+Media files are intentionally **not copied by Migrator**. After database migration, the administrator must copy the source MediaGallery files into MediaGallery's persistent storage. With MediaGallery 1.9.0 on a standard Geeklog 2.2.2 site, the default target is `public_html/images/mediagallery/` (derived from `$_CONF['path_images']`). Installations with a custom `path_images` / `images_url` pair must use that configured storage instead.
 
 
 ## WordPress migration
@@ -150,4 +150,4 @@ Migrator converts Forum attachments into a dedicated MediaGallery album named `F
 - attachment media are stored as generic downloadable MediaGallery items so no image/video derivatives are required during database migration;
 - the dry run and migration report list the exact source and target file path for every attachment.
 
-Migrator migrates the database records only. The administrator must copy the physical files to the exact `mediagallery/mediaobjects/orig/<first-character>/...` paths shown in the report.
+Migrator migrates the database records only. The administrator must copy the physical files to the exact MediaGallery persistent-storage paths shown in the report. On a standard Geeklog 2.2.2 / MediaGallery 1.9.0 installation, Forum attachments therefore land under `public_html/images/mediagallery/orig/<first-character>/...`.
