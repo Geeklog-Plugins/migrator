@@ -1,0 +1,154 @@
+<?php
+// +--------------------------------------------------------------------------+
+// | Migrator Plugin - Geeklog                                                |
+// +--------------------------------------------------------------------------+
+// | english.php                                                              |
+// |                                                                          |
+// | English language strings for the Migrator plugin.                        |
+// +--------------------------------------------------------------------------+
+// | Copyright (C) 2026 by the following authors:                             |
+// |                                                                          |
+// | ::Ben         hostellerie.org  AT gmail DOT com                          |
+// +--------------------------------------------------------------------------+
+// |                                                                          |
+// | This program is free software; you can redistribute it and/or            |
+// | modify it under the terms of the GNU General Public License              |
+// | as published by the Free Software Foundation; either version 2           |
+// | of the License, or (at your option) any later version.                   |
+// |                                                                          |
+// | This program is distributed in the hope that it will be useful,          |
+// | but WITHOUT ANY WARRANTY; without even the implied warranty of           |
+// | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            |
+// | GNU General Public License for more details.                             |
+// |                                                                          |
+// | You should have received a copy of the GNU General Public License        |
+// | along with this program; if not, write to the Free Software Foundation,  |
+// | Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.          |
+// |                                                                          |
+// +--------------------------------------------------------------------------+
+
+$LANG_MIGRATOR = array(
+    'plugin_name' => 'Migrator',
+    'title' => 'CMS migration',
+    'intro' => 'Recover content from a database copy into a fresh Geeklog 2.2.2 installation.',
+    'getting_started' => 'Getting started',
+    'step_1' => 'Select the source CMS and export its database as an SQL dump.',
+    'step_2' => 'Upload the SQL dump. Migrator stages source tables under isolated table names.',
+    'step_3' => 'Review detected content, plugin dependencies and record counts before any destination data is imported.',
+    'fresh_warning' => 'Migrator is designed for a fresh Geeklog 2.2.2 installation.',
+    'destination_title' => 'Destination status',
+    'destination_ready' => 'Ready',
+    'destination_blocked' => 'Blocked',
+    'count_users' => 'Users',
+    'count_stories' => 'Stories',
+    'count_topics' => 'Topics',
+    'count_comments' => 'Comments',
+    'count_staticpages' => 'Static Pages',
+    'destination_fresh' => 'Destination check: fresh Geeklog baseline detected.',
+    'destination_not_fresh' => 'Destination check: existing content exceeds the fresh Geeklog baseline.',
+    'site_locked_title' => 'Migrator is locked on this installation',
+    'site_locked_intro' => 'This Geeklog site is not a fresh installation, so Migrator migration functions are disabled.',
+    'site_locked_explain' => 'Migrator is designed to write only into a fresh Geeklog 2.2.2 destination. Existing site content must never be overwritten or mixed with an import by mistake.',
+    'site_locked_action_hint' => 'If Migrator was installed here accidentally, uninstall the plugin. To perform a migration, install Migrator on a fresh Geeklog 2.2.2 site.',
+    'site_locked_action' => 'Action refused: Migrator is locked because this is not a fresh Geeklog installation.',
+    'site_locked_controls' => 'Database upload and staging are disabled on this installation.',
+    'site_locked_no_jobs' => 'No migration workflow is available while Migrator is locked.',
+    'destination_counts' => 'Current core counts',
+    'upload' => 'Upload SQL dump',
+    'choose_source' => 'Source CMS',
+    'choose_source_placeholder' => 'Select a CMS',
+    'invalid_source' => 'Select a supported source CMS.',
+    'sql_file' => 'Database dump',
+    'accepted_formats' => 'Accepted formats: .sql, .sql.gz and .zip containing exactly one .sql dump.',
+    'normalized_format' => 'Uploaded format: %s.',
+    'import_stage' => 'Stage and analyse',
+    'jobs' => 'Current migration',
+    'no_jobs' => 'No migration has been staged yet.',
+    'source' => 'Source',
+    'version' => 'Version',
+    'status' => 'Status',
+    'created' => 'Created',
+    'details' => 'Details',
+    'tables' => 'Source tables',
+    'records' => 'Records',
+    'legacy_geeklog' => 'Legacy Geeklog',
+    'glfusion' => 'glFusion',
+    'wordpress' => 'WordPress',
+    'unknown' => 'Unknown',
+    'upload_failed' => 'The SQL dump could not be uploaded.',
+    'invalid_file' => 'Supported database dump formats are .sql, .sql.gz and .zip containing exactly one .sql file.',
+    'stage_failed' => 'The SQL dump could not be staged safely.',
+    'stage_success' => 'The SQL dump was staged and analysed.',
+    'stage_blocked_active_job' => 'A migration is already staged. Purge the current migration before uploading another dump.',
+    'purge' => 'Purge staged source',
+    'purge_confirm' => 'Remove all staged source tables and migration jobs?',
+    'purged' => 'Staged migration data was removed.',
+    'security_error' => 'Invalid or expired security token.',
+    'analysis' => 'Migration plan',
+    'cms_selected' => 'Selected CMS',
+    'cms_detected' => 'Detected structure',
+    'table_count' => 'Tables staged',
+    'statement_count' => 'Statements imported',
+    'skipped_count' => 'Statements skipped',
+    'recoverable_content' => 'Recoverable content',
+    'content_type' => 'Content type',
+    'support_status' => 'Migration status',
+    'status_supported' => 'Ready',
+    'status_planned' => 'Planned',
+    'required_plugin' => 'Required plugin',
+    'plugin_not_required' => 'Core',
+    'plugin_ready' => 'installed and active',
+    'plugin_missing' => 'MISSING — install and enable before migration',
+    'missing_dependencies_title' => 'Missing plugin dependencies',
+    'missing_dependencies_intro' => 'Migration is blocked because the source contains data for plugins that are not installed and active on this Geeklog site.',
+    'missing_dependencies_action' => 'Install and enable the listed plugins, then reload this page. Dry run remains available.',
+    'migration_blocked_dependencies' => 'Migration blocked: one or more required destination plugins are missing or disabled.',
+    'next' => 'Next',
+    'next_text' => 'Run the dry run to validate what would be imported. No destination content is modified yet.',
+    'next_after_dry_run' => 'Review the dry-run result. If it is correct, start the migration.',
+    'next_after_migration' => 'Verify the imported content. If the result is not satisfactory, use the test reset before trying another archive.',
+    'storage_error' => 'Migrator cannot create or write its persistent data directory.',
+    'database_error' => 'Migrator could not record the migration job.',
+    'file_error' => 'The uploaded file could not be processed.',
+    'source_file' => 'Source file',
+    'safe_stage' => 'Staging is isolated from Geeklog destination tables.',
+    'admin_only' => 'Migrator has no public page. All operations are restricted to administrators with migrator.admin rights.',
+    'run_dry_run' => 'Run dry run',
+    'run_dry_run_again' => 'Run dry run again',
+    'dry_run_required' => 'A dry run is required before the migration button is enabled.',
+    'run_migration' => 'Migrate selected content',
+    'migrate_confirm' => 'Import the analysed content into this fresh Geeklog installation?',
+    'dry_run_complete' => 'Dry run completed. Review the result before migration.',
+    'dry_run_failed' => 'Dry run failed.',
+    'migration_complete' => 'Migration completed.',
+    'migration_failed' => 'Migration failed.',
+    'dry_run_result' => 'Dry run result',
+    'migration_result' => 'Migration result',
+    'would_import' => 'Would import',
+    'imported' => 'Imported',
+    'preserved' => 'Preserved',
+    'conflicts' => 'Conflicts',
+    'skipped' => 'Skipped',
+    'no_migration_result' => 'No migration result is available.',
+    'adapter_not_ready' => 'The migration writer for this source is not implemented yet.',
+    'plugin_content' => 'Plugin content',
+    'source_not_detected' => 'No matching source data was detected.',
+    'source_table' => 'Source table',
+    'files_to_copy' => 'Files to copy after database migration',
+    'source_path' => 'Source path',
+    'target_path' => 'Target path',
+    'note' => 'Note',
+    'reset_title' => 'Reset test installation',
+    'reset_danger' => 'DANGER: this action is destructive and is intended only for a dedicated Migrator test installation.',
+    'reset_deletes_content' => 'Deletes migrated stories, topics, comments and Static Pages.',
+    'reset_deletes_users' => 'Deletes all non-core users (uid greater than 2) and their related user data.',
+    'reset_deletes_plugins' => 'Deletes data from installed and active destination plugins used by the migration, such as Forum and MediaGallery.',
+    'reset_media_warning' => 'Files copied manually to media directories are NOT deleted automatically and must be removed separately if you want a fully clean filesystem.',
+    'reset_checkbox' => 'I understand that this reset permanently deletes migrated/test data from this Geeklog installation.',
+    'reset_type_prompt' => 'To confirm, type exactly:',
+    'reset_button' => 'Reset test installation',
+    'reset_confirmation_failed' => 'Reset cancelled: the checkbox and exact confirmation phrase are required.',
+    'reset_unavailable' => 'Reset is unavailable because Migrator has not recorded a completed migration.',
+    'reset_failed' => 'The test installation could not be reset.',
+    'reset_complete' => 'The migrated test data and Migrator staging data were removed. The destination is back to a clean Migrator test baseline and is ready for another migration.'
+);

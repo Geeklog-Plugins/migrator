@@ -1,0 +1,30 @@
+<div class="migrator-admin">
+    <h1>{page_title}</h1>
+    <p class="migrator-lead">{intro}</p>
+
+    {message}
+    {lock_message}
+
+    <section class="migrator-card">
+        <h2>{destination_title}</h2>
+        {destination_status}
+    </section>
+
+    <details class="migrator-card migrator-help">
+        <summary>{getting_started}</summary>
+        <ol>
+            <li>{step_1}</li>
+            <li>{step_2}</li>
+            <li>{step_3}</li>
+        </ol>
+        <p class="migrator-muted">{safe_stage}</p>
+    </details>
+
+    {upload_section}
+
+    {jobs_section}
+
+    {analysis_section}
+
+    {danger_section}
+</div>

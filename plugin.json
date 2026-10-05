@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "id": "migrator",
+  "name": "Migrator",
+  "requires": {
+    "geeklog": "2.2.2"
+  },
+  "version": "1.0.0"
+}

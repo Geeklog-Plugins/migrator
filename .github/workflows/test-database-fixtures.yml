@@ -1,0 +1,104 @@
+name: Build Migrator test database archives
+
+on:
+  push:
+    branches:
+      - develop-0.1.0
+    paths:
+      - 'tests/fixtures/*.sql'
+      - 'tests/fixtures/README.md'
+      - '.github/workflows/test-database-fixtures.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: migrator-test-database-fixtures
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Migrator branch
+        uses: actions/checkout@v4
+        with:
+          ref: develop-0.1.0
+          fetch-depth: 0
+
+      - name: Verify fixture files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s tests/fixtures/geeklog_legacy_test.sql
+          test -s tests/fixtures/glfusion_test.sql
+          test -s tests/fixtures/wordpress_test.sql
+
+          grep -q 'CREATE TABLE gl_users' tests/fixtures/geeklog_legacy_test.sql
+          grep -q 'CREATE TABLE gf_ff_topic' tests/fixtures/glfusion_test.sql
+          grep -q 'CREATE TABLE gf_mg_media' tests/fixtures/glfusion_test.sql
+          grep -q 'CREATE TABLE demo_posts' tests/fixtures/wordpress_test.sql
+
+      - name: Build test database archives
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf tests/fixtures/dist
+          mkdir -p tests/fixtures/dist
+
+          (
+            cd tests/fixtures
+            zip -j dist/geeklog_legacy_test.zip geeklog_legacy_test.sql README.md >/dev/null
+            zip -j dist/glfusion_test.zip glfusion_test.sql README.md >/dev/null
+            zip -j dist/wordpress_test.zip wordpress_test.sql README.md >/dev/null
+          )
+
+          mkdir -p build/migrator-test-databases
+          cp tests/fixtures/geeklog_legacy_test.sql build/migrator-test-databases/
+          cp tests/fixtures/glfusion_test.sql build/migrator-test-databases/
+          cp tests/fixtures/wordpress_test.sql build/migrator-test-databases/
+          cp tests/fixtures/README.md build/migrator-test-databases/README.md
+
+          (
+            cd build
+            zip -r ../tests/fixtures/dist/migrator_test_databases.zip migrator-test-databases >/dev/null
+          )
+
+          for archive in tests/fixtures/dist/*.zip; do
+            unzip -t "$archive" >/dev/null
+          done
+
+      - name: Publish fixtures artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: migrator-test-databases
+          path: tests/fixtures/dist/*.zip
+          if-no-files-found: error
+
+      - name: Commit archives
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p /tmp/migrator-fixtures
+          cp tests/fixtures/dist/*.zip /tmp/migrator-fixtures/
+
+          git fetch origin develop-0.1.0
+          git reset --hard origin/develop-0.1.0
+
+          mkdir -p tests/fixtures/dist
+          cp /tmp/migrator-fixtures/*.zip tests/fixtures/dist/
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A tests/fixtures/dist
+
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+
+          git commit -m 'Build Migrator test database archives [skip ci]'
+          git push origin HEAD:develop-0.1.0
