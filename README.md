@@ -11,15 +11,15 @@ The project favors simple, auditable recovery over perfect reproduction of the s
 - MySQL-compatible database
 - administration-only workflow
 
-## Planned source CMS
+## Supported source CMS
 
 1. Legacy Geeklog
 2. glFusion
 3. WordPress
 
-## Current 0.1.0 development state
+## Migrator 1.0.0
 
-The `develop-0.1.0` branch currently provides:
+Migrator 1.0.0 provides:
 
 - Geeklog 2.2.2 autoinstall metadata
 - `migrator.admin` permission and admin group
@@ -62,7 +62,7 @@ Source tables are recreated under isolated names. Migrator never executes source
 
 The staging importer accepts only the subset needed to recover source tables and rows. Other statements are skipped.
 
-Destination migration will be a separate, explicit action after analysis and dry-run.
+Destination migration is a separate, explicit action after analysis and dry-run.
 
 ## Development rules
 
@@ -98,7 +98,7 @@ Media files are intentionally **not copied by Migrator**. After database migrati
 
 ## WordPress migration
 
-The current development adapter supports:
+The WordPress adapter supports:
 
 - users with deterministic UID remapping when WordPress IDs 1/2 conflict with Geeklog core users
 - WordPress categories to Geeklog topics
@@ -119,6 +119,15 @@ Current limitations:
 - pingbacks/trackbacks are not imported as comments
 - attachment post records and featured-image metadata are not converted yet
 - plugin-specific WordPress data is not migrated
+
+
+## Package
+
+The installable package for this release is:
+
+`migrator_1.0.0_2.2.2.zip`
+
+It is intended for Geeklog 2.2.2 only.
 
 
 ## Accepted database dump formats
